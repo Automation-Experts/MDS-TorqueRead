@@ -75,43 +75,14 @@ int main()
 		iMax = 100;
 		cPdrvCmd = "px";
 
-		/* Before power set ON !*/
-		a1.ElmoSetAsyncParam(cPdrvCmd, iValSet);
-		a1.ElmoGetAsyncIntParam(cPdrvCmd);
-		while (loopCount < iMax)
-		{
-			if(a1.ElmoIsReplyAwaiting())
-			{
-				a1.ElmoGetReply(iValGet) ;
-				break;
-			}
-			loopCount++;
-			a1.USleep(10);
-		}
-		if (loopCount < iMax)
-		{
-			printf("\nDRIVER Axis1 %s Position=%d (set to %d)\n", cPdrvCmd, iValGet, iValSet);
-		}
-		else
-		{
-			printf("\n Fail get DRIVER AxisA %s Position...", cPdrvCmd);
-		}
-
-
-
-
-
 		float sync_param = 0;
 		//float& pt = &sync_param;
 		char* i_cmd = "IQ";
 		char* p_cmd = "PQ";
 		//char * c_pt = cmd;
-		a1.ElmoGetSyncParam(i_cmd, sync_param);
-		cout << "1 CURRENT: " << sync_param  << endl;
-		a1.ElmoGetSyncParam(p_cmd,sync_param);
-		cout << "1 POSITION: " << sync_param  << endl;
 
-
+		long int rc = 0;
+		int sdo_delay = 0;
 		a1.PowerOn();
 		cout << "a1 is powered on!" << endl;
 		int turns = 4, curr_turns = 0, pos = 0;
@@ -122,32 +93,21 @@ int main()
 				cout << "Turn number: " << curr_turns << endl;
 				curr_turns % 2 ? pos = 4000 : pos = 0;
 				a1.MoveAbsolute(pos, 4000);
-				a1.ElmoGetSyncParam(i_cmd, sync_param);
-				cout << curr_turns << " CURRENT: " << sync_param  << endl;
-				a1.ElmoGetSyncParam(p_cmd, sync_param);
-				cout << curr_turns << " POSITION: " << sync_param << endl;
-				cout << curr_turns << " POSITION FUNC: " << a1.GetActualPosition() << endl;
-				cout << curr_turns << " VELOCITY FUNC: " << a1.GetActualVelocity() << endl;
-				cout << curr_turns << " TORQUE FUNC: " << a1.GetActualTorque() << endl;
-				curr_turns++;
 
-				a1.ElmoGetAsyncIntParam(i_cmd);
-				while (loopCount < iMax)
-				{
-					if(a1.ElmoIsReplyAwaiting())
-					{
-						iValGet = 0;
-						cout << " iValGet is previously: " << iValGet << endl;
-						a1.ElmoGetReply(iValGet) ;
-						cout << " CURRENT ASYNC: " << iValGet  << " ---- "<< endl;
-						break;
-					}
-					loopCount++;
-					a1.USleep(10);
-				}
+				curr_turns++;
 
 			}
 			giXStatus = a1.ReadStatus();
+			if(sdo_delay == 20)
+			{
+				rc = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
+				cout << "SDO returned: " << rc << endl;
+
+			}
+			else
+			{
+				sdo_delay++;
+			}
 		}
 
 		if(giXStatus & NC_AXIS_ERROR_STOP_MASK)
