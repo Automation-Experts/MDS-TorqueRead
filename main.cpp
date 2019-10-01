@@ -59,15 +59,95 @@ int main()
 
 		cout << "Reading a1 status..." << endl;
 		giXStatus 	= a1.ReadStatus() ;
+
+		int   iValGet,
+
+		iValSet;
+		float   fValGet;
+		int    loopCount,
+		iMax;
+		char* cPdrvCmd;
+
+		//printf("\n     %s:", __func__);
+
+		iValSet = 5000;
+		loopCount = 0;
+		iMax = 100;
+		cPdrvCmd = "px";
+
+		/* Before power set ON !*/
+		a1.ElmoSetAsyncParam(cPdrvCmd, iValSet);
+		a1.ElmoGetAsyncIntParam(cPdrvCmd);
+		while (loopCount < iMax)
+		{
+			if(a1.ElmoIsReplyAwaiting())
+			{
+				a1.ElmoGetReply(iValGet) ;
+				break;
+			}
+			loopCount++;
+			a1.USleep(10);
+		}
+		if (loopCount < iMax)
+		{
+			printf("\nDRIVER Axis1 %s Position=%d (set to %d)\n", cPdrvCmd, iValGet, iValSet);
+		}
+		else
+		{
+			printf("\n Fail get DRIVER AxisA %s Position...", cPdrvCmd);
+		}
+
+
+
+
+
+		float sync_param = 0;
+		//float& pt = &sync_param;
+		char* i_cmd = "IQ";
+		char* p_cmd = "PQ";
+		//char * c_pt = cmd;
+		a1.ElmoGetSyncParam(i_cmd, sync_param);
+		cout << "1 CURRENT: " << sync_param  << endl;
+		a1.ElmoGetSyncParam(p_cmd,sync_param);
+		cout << "1 POSITION: " << sync_param  << endl;
+
+
 		a1.PowerOn();
 		cout << "a1 is powered on!" << endl;
-		double a1_torque = a1.GetActualTorque();
-		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK))
+		int turns = 4, curr_turns = 0, pos = 0;
+		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && curr_turns < turns)
 		{
-			cout << "Moving a1..." << endl;
-			a1_torque = a1.GetActualTorque();
-			cout << "torque is: " << a1_torque;
-			a1.MoveVelocity(1000);
+			if (giXStatus & NC_AXIS_STAND_STILL_MASK)
+			{
+				cout << "Turn number: " << curr_turns << endl;
+				curr_turns % 2 ? pos = 4000 : pos = 0;
+				a1.MoveAbsolute(pos, 4000);
+				a1.ElmoGetSyncParam(i_cmd, sync_param);
+				cout << curr_turns << " CURRENT: " << sync_param  << endl;
+				a1.ElmoGetSyncParam(p_cmd, sync_param);
+				cout << curr_turns << " POSITION: " << sync_param << endl;
+				cout << curr_turns << " POSITION FUNC: " << a1.GetActualPosition() << endl;
+				cout << curr_turns << " VELOCITY FUNC: " << a1.GetActualVelocity() << endl;
+				cout << curr_turns << " TORQUE FUNC: " << a1.GetActualTorque() << endl;
+				curr_turns++;
+
+				a1.ElmoGetAsyncIntParam(i_cmd);
+				while (loopCount < iMax)
+				{
+					if(a1.ElmoIsReplyAwaiting())
+					{
+						iValGet = 0;
+						cout << " iValGet is previously: " << iValGet << endl;
+						a1.ElmoGetReply(iValGet) ;
+						cout << " CURRENT ASYNC: " << iValGet  << " ---- "<< endl;
+						break;
+					}
+					loopCount++;
+					a1.USleep(10);
+				}
+
+			}
+			giXStatus = a1.ReadStatus();
 		}
 
 		if(giXStatus & NC_AXIS_ERROR_STOP_MASK)
@@ -75,15 +155,15 @@ int main()
 			giXStatus 	= a1.ReadStatus() ;
 			if(giXStatus & NC_AXIS_ERROR_STOP_MASK)
 			{
-				cout << "Axis a1 in Error Stop. Aborting." ;
+				cout << "Axis a1 in Error Stop. Aborting." << endl ;
 				exit(0) ;
 			}
 		}
 
 		cout << "Performing PDO General Read..." << endl;
-		unsigned char ucParam;
-		a1.PDOGeneralRead(ucParam);
-		cout << ucParam << endl;
+		unsigned char ucParam = 0;
+		int val = a1.PDOGeneralRead(ucParam);
+		cout << "PDO General Read value is: " << val << endl;
 
 //		v1.GroupEnable();
 //		//
@@ -130,7 +210,7 @@ int main()
 	}
 	catch(CMMCException& exception)
 	{
-		printf("Exception in function %s, axis ref=%s, err=%d, status=%d, bye\n", exception.what(), exception.axisName(), exception.error(), exception.status());
+		printf("Exception in function %s, axis ref=%s, err=%d, status=%d, %d, bye\n", exception.what(), exception.axisName(), exception.error(), exception.status(), exception.axisRef());
 		MainClose();
 		exit(0);
 	}
@@ -211,6 +291,7 @@ void MainInit()
 	//
 	// TODO: Update number of necessary axes:
 	//
+	cout << "Initializing a1..." << endl;
 	a1.InitAxisData("a01",gConnHndl) ;
 	//a2.InitAxisData("a02",gConnHndl) ;
 	//v1.InitAxisData("v01",gConnHndl);
@@ -436,6 +517,7 @@ void ChangeToRelevantMode()
 	double dConnectionType;
 	//
 	dConnectionType = cConn.GetGlobalBoolParameter(MMC_CONNECTION_TYPE_PARAM , 0);
+
 	//
 	// ETHERCAT
 	if( dConnectionType == eCOMM_TYPE_ETHERCAT )
@@ -457,11 +539,11 @@ void ChangeToRelevantMode()
 	// CAN
 	else
 	{
-		a1.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
+		a1.SetOpMode(OPM402_PROFILE_POSITION_MODE);
 		// Waiting for Set Operation Mode
 		//
 		giXOpMode =  a1.GetOpMode();
-		while ( giXOpMode != OPM402_PROFILE_VELOCITY_MODE )
+		while ( giXOpMode != OPM402_PROFILE_POSITION_MODE)
 			giXOpMode =  a1.GetOpMode();
 		//
 //		a2.SetOpMode(OPM402_INTERPOLATED_POSITION_MODE);
