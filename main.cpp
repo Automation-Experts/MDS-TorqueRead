@@ -82,43 +82,25 @@ int main()
 		//char * c_pt = cmd;
 
 		long int rc = 0;
-		int sdo_delay = 0;
+		int sdo_delay = 0, run_limit = 0;
 		a1.PowerOn();
 		cout << "a1 is powered on!" << endl;
-		int turns = 4, curr_turns = 0, pos = 0;
-		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && curr_turns < turns)
+		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_limit < 400000)
 		{
 			if (giXStatus & NC_AXIS_STAND_STILL_MASK)
 			{
-				cout << "Turn number: " << curr_turns << endl;
-				curr_turns % 2 ? pos = 4000 : pos = 0;
-				a1.MoveAbsolute(pos, 4000);
-
-				curr_turns++;
-
+				a1.MoveVelocity(1500);
 			}
 			giXStatus = a1.ReadStatus();
-			if(sdo_delay == 20)
+			if(sdo_delay++ == 2500)
 			{
 				rc = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
 				cout << "SDO returned: " << rc << endl;
-
-			}
-			else
-			{
-				sdo_delay++;
+				sdo_delay = 0;
 			}
 		}
 
-		if(giXStatus & NC_AXIS_ERROR_STOP_MASK)
-		{
-			giXStatus 	= a1.ReadStatus() ;
-			if(giXStatus & NC_AXIS_ERROR_STOP_MASK)
-			{
-				cout << "Axis a1 in Error Stop. Aborting." << endl ;
-				exit(0) ;
-			}
-		}
+		a1.Stop();
 
 		cout << "Performing PDO General Read..." << endl;
 		unsigned char ucParam = 0;
@@ -499,11 +481,11 @@ void ChangeToRelevantMode()
 	// CAN
 	else
 	{
-		a1.SetOpMode(OPM402_PROFILE_POSITION_MODE);
+		a1.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
 		// Waiting for Set Operation Mode
 		//
 		giXOpMode =  a1.GetOpMode();
-		while ( giXOpMode != OPM402_PROFILE_POSITION_MODE)
+		while ( giXOpMode != OPM402_PROFILE_VELOCITY_MODE)
 			giXOpMode =  a1.GetOpMode();
 		//
 //		a2.SetOpMode(OPM402_INTERPOLATED_POSITION_MODE);
