@@ -86,6 +86,7 @@ void MainInit()
 //
 	int iRes ;
 	float fRes ;
+	appTimeout = 0;
 	//
 	gConnHndl = cConn.ConnectIPCEx(0x7fffffff,(MMC_MB_CLBK)CallbackFunc) ;
 	//
@@ -324,6 +325,11 @@ void BackgroundProcesses()
 //
 //	Here will come code for all closing processes
 //
+	if (appTimeout++ > 10 * 100)
+	{
+		cout << "App has timed out." << endl;
+		giTerminate = true;
+	}
 	return;
 }
 /*

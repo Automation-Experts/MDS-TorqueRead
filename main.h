@@ -124,6 +124,8 @@ int 	giXStatus ;
 int 	giYStatus ;
 int 	giXPos ;
 int 	giYPos ;
+
+int 	appTimeout;
 //
 /*
 ============================================================================
