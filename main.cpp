@@ -89,11 +89,14 @@ int main()
 		{
 			if (giXStatus & NC_AXIS_STAND_STILL_MASK)
 			{
-				a1.MoveVelocity(1500);
+				a1.MoveVelocity(4500);
 			}
 			giXStatus = a1.ReadStatus();
-			if(sdo_delay++ == 2500)
+
+			if (sdo_delay++ == 2500)
 			{
+				//a1.SendSdoUploadAsync(0,4,0x6077,0);
+				//a1.RetreiveSdoUploadAsync(rc);
 				rc = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
 				cout << "SDO returned: " << rc << endl;
 				sdo_delay = 0;
