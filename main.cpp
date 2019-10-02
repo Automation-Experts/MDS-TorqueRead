@@ -86,7 +86,9 @@ void MainInit()
 //
 	int iRes ;
 	float fRes ;
+	currRead = 0;
 	appTimeout = 0;
+	sleepCount = 0;
 	//
 	gConnHndl = cConn.ConnectIPCEx(0x7fffffff,(MMC_MB_CLBK)CallbackFunc) ;
 	//
@@ -236,7 +238,12 @@ void MachineSequences()
 //
 //		Sleep for ~SLEEP_TIME micro-seconds to reduce CPU load
 //
-		usleep(SLEEP_TIME);
+		int awakeTime = sleep(SLEEP_TIME);
+		if (sleep(SLEEP_TIME) > 0)
+		{
+			cout << "Woke up from sleep with: " << awakeTime << " left in sleep" << endl;
+		}
+		sleepCount++;
 	}
 //
 //	Termination requested. Close what needs to be cloased at the states machines
@@ -322,13 +329,17 @@ void MachineSequencesClose()
 */
 void BackgroundProcesses()
 {
-//
+//  Runs every 1000ms.
 //	Here will come code for all closing processes
 //
-	if (appTimeout++ > 10 * 100)
+	//a1.SendSdoUploadAsync(0,4,0x6077,0);
+	//usleep(SLEEP_TIME);
+
+	if (appTimeout++ > 10 * 10)
 	{
 		cout << "App has timed out." << endl;
 		giTerminate = true;
+		cout << "Sleep count is: " << sleepCount << endl;
 	}
 	return;
 }
@@ -350,7 +361,7 @@ void BackgroundProcesses()
 */
 void EnableMachineSequencesTimer(int TimerCycle)
 {
-	struct itimerval timer;
+	struct itimerval timer, kill_timer;
 	struct sigaction stSigAction;
 
 	// Whenever a signal is caught, call TerminateApplication function
@@ -368,9 +379,16 @@ void EnableMachineSequencesTimer(int TimerCycle)
 	timer.it_value.tv_sec 		= 0;
 	timer.it_value.tv_usec 		= TimerCycle * 1000;// From ms to micro seconds
 
+//	timer.it_interval.tv_sec 	= 0;
+//	timer.it_interval.tv_usec 	= 10 * 1000 * 1000;// From ms to micro seconds
+//	timer.it_value.tv_sec 		= 0;
+//	timer.it_value.tv_usec 		= 10 * 1000 * 1000;// From ms to micro seconds
+
 	setitimer(ITIMER_REAL, &timer, NULL);
+	//setitimer(ITIMER_REAL, &kill_timer,NULL);
 
 	signal(SIGALRM, MachineSequencesTimer); 		// every TIMER_CYCLE ms SIGALRM is received which calls MachineSequencesTimer()
+	//signal(SIGALRM, TerminateApplication);
 
 	return;
 }
@@ -993,6 +1011,7 @@ int CallbackFunc(unsigned char* recvBuffer, short recvBufferSize,void* lpsock)
 	{
 	case ASYNC_REPLY_EVT:
 		printf("ASYNC event Reply\r\n") ;
+		//cout << "Current SDO read: " << currRead << endl;
 		break ;
 	case EMCY_EVT:
 		// Please note - The emergency event was registered.
