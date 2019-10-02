@@ -228,7 +228,7 @@ void MachineSequences()
 //
 	while (!giTerminate)
 	{
-		MachineSequencesTimer(0);
+		//MachineSequencesTimer(0);
 //
 //		Execute background process if required
 //
@@ -368,9 +368,9 @@ void EnableMachineSequencesTimer(int TimerCycle)
 	timer.it_value.tv_sec 		= 0;
 	timer.it_value.tv_usec 		= TimerCycle * 1000;// From ms to micro seconds
 
-	// setitimer(ITIMER_REAL, &timer, NULL);
+	setitimer(ITIMER_REAL, &timer, NULL);
 
-	// signal(SIGALRM, MachineSequencesTimer); 		// every TIMER_CYCLE ms SIGALRM is received which calls MachineSequencesTimer()
+	signal(SIGALRM, MachineSequencesTimer); 		// every TIMER_CYCLE ms SIGALRM is received which calls MachineSequencesTimer()
 
 	return;
 }
