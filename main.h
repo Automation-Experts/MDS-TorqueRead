@@ -63,8 +63,17 @@ void MMCPP_InitConnection() ;
  Project constants
 ============================================================================
 */
-#define		SLEEP_TIME				5	// Sleep time of the backround idle loop, in seconds
+#define		SLEEP_TIME				15// Sleep time of the backround idle loop, in seconds
+#define 	SLEEP_COUNT				SLEEP_TIME * 1000 / TIMER_CYCLE
+#define 	SDO_TIME				1
+#define 	SDO_COUNT				SDO_TIME * 1000 / TIMER_CYCLE
 #define		TIMER_CYCLE				20		// Cycle time of the main sequences timer, in ms
+
+#define 	TEST_TIME				15
+#define 	STEP_COUNT				2000
+#define		TEST_SPEED				4000
+#define		TEST_POS				15000 * TEST_SPEED / STEP_COUNT
+
 #define		SYNC_MULTIPLIER			1		// SYNC Time
 /*
 ============================================================================
@@ -126,8 +135,11 @@ int 	giXPos ;
 int 	giYPos ;
 
 int 	appTimeout;
-long int		currRead;
+int		sdoTimeout;
+int16_t	currRead;
 int 	sleepCount;
+long	asyncVal;
+float	outputCurrent;
 //
 /*
 ============================================================================

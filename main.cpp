@@ -47,6 +47,7 @@ The following features are demonstrated for a CAN network (Due to SYNC and PDO i
 
 int main()
 {
+	try {
 	//
 	//	Initialize system, axes and all needed initializations
 	//
@@ -61,6 +62,19 @@ int main()
 	MainClose();
 	//
 	return 1;		// Terminate the application program back to the Operating System
+	}
+	catch(CMMCException& exception)
+	{
+		printf("Exception in function %s, axis ref=%s, err=%d, status=%d, %d, bye\n", exception.what(), exception.axisName(), exception.error(), exception.status(), exception.axisRef());
+		MainClose();
+		exit(0);
+	}
+	catch (...)
+	{
+		std::cerr << "Unknown exception caught\n";
+		MainClose();
+		exit(0);
+	}
 }
 /*
 ============================================================================
@@ -89,6 +103,7 @@ void MainInit()
 	currRead = 0;
 	appTimeout = 0;
 	sleepCount = 0;
+	asyncVal = 0;
 	//
 	gConnHndl = cConn.ConnectIPCEx(0x7fffffff,(MMC_MB_CLBK)CallbackFunc) ;
 	//
@@ -230,19 +245,20 @@ void MachineSequences()
 //
 	while (!giTerminate)
 	{
-		//MachineSequencesTimer(0);
+		// Non-timer version allows you to debug...
+		MachineSequencesTimer(0);
 //
 //		Execute background process if required
 //
 		BackgroundProcesses();
 //
 //		Sleep for ~SLEEP_TIME micro-seconds to reduce CPU load
-//
+//		Doesn't do anything with the SIGALRM going off
 		int awakeTime = sleep(SLEEP_TIME);
-		if (sleep(SLEEP_TIME) > 0)
-		{
-			cout << "Woke up from sleep with: " << awakeTime << " left in sleep" << endl;
-		}
+//		if (sleep(SLEEP_TIME) > 0)
+//		{
+//			cout << "Woke up from sleep with: " << awakeTime << " left in sleep" << endl;
+//		}
 		sleepCount++;
 	}
 //
@@ -274,7 +290,7 @@ void MachineSequencesInit()
 //
 	giTerminate 	= FALSE;
 
-	giState1 		= eSM1;
+	giState1 		= eSM2;
 	giPrevState1 	= eIDLE;
 	giSubState1 	= eIDLE;
 	//
@@ -332,14 +348,22 @@ void BackgroundProcesses()
 //  Runs every 1000ms.
 //	Here will come code for all closing processes
 //
-	//a1.SendSdoUploadAsync(0,4,0x6077,0);
-	//usleep(SLEEP_TIME);
+	// Doesn't really do anything because of the SIGALRM going off
+	usleep(SLEEP_TIME);
 
-	if (appTimeout++ > 10 * 10)
+//	if (sdoTimeout++ > SDO_COUNT)
+//	{
+//		currRead = a1.SendSdoUpload(0,4,0x6077,0);
+//		//outputCurrent = (float)currRead / 1000;
+//		//cout << "SDO Read: " << outputCurrent << endl;
+//		cout << "SDO Read: " << currRead << endl;
+//	}
+
+	if (appTimeout++ > SLEEP_COUNT)
 	{
 		cout << "App has timed out." << endl;
 		giTerminate = true;
-		cout << "Sleep count is: " << sleepCount << endl;
+		//cout << "Sleep count is: " << sleepCount << endl;
 	}
 	return;
 }
@@ -384,10 +408,10 @@ void EnableMachineSequencesTimer(int TimerCycle)
 //	timer.it_value.tv_sec 		= 0;
 //	timer.it_value.tv_usec 		= 10 * 1000 * 1000;// From ms to micro seconds
 
-	setitimer(ITIMER_REAL, &timer, NULL);
+	//setitimer(ITIMER_REAL, &timer, NULL);
 	//setitimer(ITIMER_REAL, &kill_timer,NULL);
 
-	signal(SIGALRM, MachineSequencesTimer); 		// every TIMER_CYCLE ms SIGALRM is received which calls MachineSequencesTimer()
+	//signal(SIGALRM, MachineSequencesTimer); 		// every TIMER_CYCLE ms SIGALRM is received which calls MachineSequencesTimer()
 	//signal(SIGALRM, TerminateApplication);
 
 	return;
@@ -735,7 +759,7 @@ void StateFunction_1()
 			//
 			// Change acceleration:
 			a1.m_fAcceleration 	= 50000.0 ;
-			a1.MoveAbsolute(0.0,2000,MC_ABORTING_MODE) ;
+			a1.MoveAbsolute(0.0,TEST_SPEED,MC_ABORTING_MODE) ;
 			giSubState1 		= eSubState_SM1_WMove2 ;
 			break ;
 		case eSubState_SM1_WMove2:
@@ -901,7 +925,7 @@ void SubState1_3Function()
 //
 //	Here will come the code to start the relevant motions
 //
-	a1.MoveAbsolute(10000.0,2000,MC_ABORTING_MODE) ;
+	a1.MoveAbsolute(TEST_POS,TEST_SPEED,MC_ABORTING_MODE) ;
 //
 //	Changing to the next sub-state
 //
@@ -959,6 +983,33 @@ void SubState2_1Function()
 //
 //
 //	Changing to the next sub-state
+	a1.PowerOn() ;
+	char cmd [] = "pa";
+	int pos = 2000;
+	cout << "Setting async param..." << endl;
+	currRead = a1.SendSdoUpload(0,4,0x6077,0);
+	//		//outputCurrent = (float)currRead / 1000;
+	//		//cout << "SDO Read: " << outputCurrent << endl;
+	cout << "SDO Torque Read: " << currRead << endl;
+	currRead = a1.SendSdoUpload(0,4,0x6078, 0);
+	cout << "SDO Current Read: " << currRead << endl;
+	//a1.SendSdoDownload(2000,0,4,0x607a,0);
+	int control_word = 0xf;
+	control_word &= 1 << 7;
+	//a1.SendSdoDownload(control_word,0,2,0x6040,0);
+	//a1.SendSdoDownload(0,0,4,0x3020,0);
+	long sdo_ret = 999;
+
+	sdo_ret = a1.SendSdoUpload(0,4,0x6064,0);
+	cout << "SDO position returned: " << sdo_ret << endl;
+	//a1.ElmoSetAsyncParam(cmd,pos);
+
+//	a1.ElmoGetSyncParam (cmd, pos);
+//	a1.elmo
+//
+//	printf("\n ++++ DRIVER AxisA %s Position=%d (set to %d)", cmd, pos, 2000);
+
+	cout << "Done setting params..." << endl;
 //
 	giSubState1 = eSubState_SM1_WMove2;
 
@@ -986,6 +1037,9 @@ void SubState2_2Function()
 //
 	if ( (~giXInMotion) && (~giYInMotion) )
 	{
+		char cmd [] = "pa";
+		int pos = 0;
+		a1.ElmoSetAsyncParam(cmd,pos);
 		giState1 = eIDLE;
 	}
 
@@ -1010,12 +1064,13 @@ int CallbackFunc(unsigned char* recvBuffer, short recvBufferSize,void* lpsock)
 	switch(recvBuffer[1])
 	{
 	case ASYNC_REPLY_EVT:
-		printf("ASYNC event Reply\r\n") ;
-		//cout << "Current SDO read: " << currRead << endl;
+		//printf("ASYNC event Reply\r\n") ;
+		//a1.RetreiveSdoUploadAsync(asyncVal); // Gives a cool seg fault last time I tried this
+		//cout << "Async event: " << asyncVal << endl;
 		break ;
 	case EMCY_EVT:
 		// Please note - The emergency event was registered.
-		// printf("Emergency Event received\r\n") ;
+		printf("Emergency Event received\r\n") ;
 		break ;
 	case MOTIONENDED_EVT:
 		printf("Motion Ended Event received\r\n") ;
@@ -1042,6 +1097,8 @@ int CallbackFunc(unsigned char* recvBuffer, short recvBufferSize,void* lpsock)
 		printf("Modbus Write Event received - Updating Outputs\r\n") ;
 
 		break ;
+	default:
+		printf("Event received: %d \r\n", recvBuffer[1]);
 	}
 	//
 	return 1 ;
