@@ -254,7 +254,7 @@ void MachineSequences()
 //
 //		Sleep for ~SLEEP_TIME micro-seconds to reduce CPU load
 //		Doesn't do anything with the SIGALRM going off
-		int awakeTime = sleep(SLEEP_TIME);
+		//int awakeTime = sleep(SLEEP_TIME);
 //		if (sleep(SLEEP_TIME) > 0)
 //		{
 //			cout << "Woke up from sleep with: " << awakeTime << " left in sleep" << endl;
@@ -290,7 +290,7 @@ void MachineSequencesInit()
 //
 	giTerminate 	= FALSE;
 
-	giState1 		= eSM2;
+	giState1 		= eSM1;
 	giPrevState1 	= eIDLE;
 	giSubState1 	= eIDLE;
 	//
@@ -349,22 +349,24 @@ void BackgroundProcesses()
 //	Here will come code for all closing processes
 //
 	// Doesn't really do anything because of the SIGALRM going off
-	usleep(SLEEP_TIME);
+	//usleep(90000);
 
-//	if (sdoTimeout++ > SDO_COUNT)
-//	{
-//		currRead = a1.SendSdoUpload(0,4,0x6077,0);
-//		//outputCurrent = (float)currRead / 1000;
-//		//cout << "SDO Read: " << outputCurrent << endl;
-//		cout << "SDO Read: " << currRead << endl;
-//	}
-
-	if (appTimeout++ > SLEEP_COUNT)
+	if (sdoTimeout++ > SDO_COUNT)
 	{
-		cout << "App has timed out." << endl;
-		giTerminate = true;
-		//cout << "Sleep count is: " << sleepCount << endl;
+		currRead = a1.SendSdoUpload(0,4,0x6077,0);
+		//outputCurrent = (float)currRead / 1000;
+		//cout << "SDO Read: " << outputCurrent << endl;
+		cout << "SDO Torque: " << currRead << endl;
+		//currRead = a1.SendSdoUpload(0,4,0x6078,0);
+		//cout << "SDO Current: " << currRead << endl;
 	}
+
+//	if (appTimeout++ > SLEEP_COUNT)
+//	{
+//		cout << "App has timed out." << endl;
+//		giTerminate = true;
+//		//cout << "Sleep count is: " << sleepCount << endl;
+//	}
 	return;
 }
 /*
@@ -768,6 +770,7 @@ void StateFunction_1()
 				a1.PowerOff() ;
 				//a2.PowerOff() ;
 				giState1 = eIDLE;
+				giTerminate = true;
 			}
 			break ;
 //
