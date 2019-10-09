@@ -81,34 +81,61 @@ int main()
 		char* p_cmd = "PQ";
 		//char * c_pt = cmd;
 
-		long int rc = 0;
+		short int rc = 0;
+
 		int sdo_delay = 0, run_limit = 0;
 		a1.PowerOn();
 		cout << "a1 is powered on!" << endl;
-		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_limit < 400000)
-		{
-			if (giXStatus & NC_AXIS_STAND_STILL_MASK)
-			{
-				a1.MoveVelocity(4500);
-			}
-			giXStatus = a1.ReadStatus();
 
-			if (sdo_delay++ == 2500)
-			{
-				//a1.SendSdoUploadAsync(0,4,0x6077,0);
-				//a1.RetreiveSdoUploadAsync(rc);
-				rc = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
-				cout << "SDO returned: " << rc << endl;
-				sdo_delay = 0;
-			}
-		}
+		char* mo_cmd = "MO";
 
-		a1.Stop();
+		int pos = 2000;
 
-		cout << "Performing PDO General Read..." << endl;
-		unsigned char ucParam = 0;
-		int val = a1.PDOGeneralRead(ucParam);
-		cout << "PDO General Read value is: " << val << endl;
+		float fpos = 4000;
+		//char bg_cmd []= {'B','G','\0'};
+
+
+		//char pa_cmd []= {'P','A','\0'};
+		char* bg_cmd = "BG";
+		char* pa_cmd = "PA";
+
+		a1.ElmoSetAsyncArray(pa_cmd,1,pos);
+		a1.ElmoCallAsync(bg_cmd);
+		rc = a1.SendSdoUpload(0,4,0x607A,0);  //rc is current in mA
+		cout << "SDO returned: " << rc << endl;
+
+		//a1.SendCmdViaSdoDownload(1,pa_cmd,0);
+		//a1.SendCmdViaSdoUpload(l_pos,pa_cmd,0);
+
+		//a1.PowerOff();
+		//a1.ElmoSetAsyncArray(mo_cmd,1,2000);
+		//a1.ElmoSetSyncArray(bg_cmd,1,1);
+
+//		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_limit < 15000)
+//		{
+//			if (giXStatus & NC_AXIS_STAND_STILL_MASK)
+//			{
+//				a1.MoveVelocity(4500);
+//			}
+//			giXStatus = a1.ReadStatus();
+//
+//			if (sdo_delay++ == 250)
+//			{
+//				//a1.SendSdoUploadAsync(0,4,0x6077,0);
+//				//a1.RetreiveSdoUploadAsync(rc);
+//				rc = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
+//				cout << "SDO returned: " << rc << endl;
+//				sdo_delay = 0;
+//			}
+//			usleep(1000);
+//		}
+
+		//a1.Stop();
+
+//		cout << "Performing PDO General Read..." << endl;
+//		unsigned char ucParam = 0;
+//		int val = a1.PDOGeneralRead(ucParam);
+//		cout << "PDO General Read value is: " << val << endl;
 
 //		v1.GroupEnable();
 //		//
@@ -151,6 +178,7 @@ int main()
 		//MainClose();
 		//
 		// Terminate the application program back to the Operating System
+		cout << "End of program" << endl;
 		return 1;
 	}
 	catch(CMMCException& exception)
