@@ -105,9 +105,12 @@ int main()
 //		cout << "SDO returned: " << rc << endl;
 
 		char* xq_cmd = "XQ##P2P_Abs(2000,1000)";
+
+		char* full_pa_cmd = "PA[1]=2000";
 		unsigned char* xq_ucmd = (unsigned char*) xq_cmd;
-		unsigned char len = 22;
+		unsigned char len = 2;
 		a1.ElmoExecute(xq_ucmd, len);
+		a1.ElmoCallAsync(bg_cmd);
 
 		//a1.SendCmdViaSdoDownload(1,pa_cmd,0);
 		//a1.SendCmdViaSdoUpload(l_pos,pa_cmd,0);
