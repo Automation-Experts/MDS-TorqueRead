@@ -99,10 +99,15 @@ int main()
 		char* bg_cmd = "BG";
 		char* pa_cmd = "PA";
 
-		a1.ElmoSetAsyncArray(pa_cmd,1,pos);
-		a1.ElmoCallAsync(bg_cmd);
-		rc = a1.SendSdoUpload(0,4,0x607A,0);  //rc is current in mA
-		cout << "SDO returned: " << rc << endl;
+//		a1.ElmoSetAsyncArray(pa_cmd,0,pos);
+//		a1.ElmoCallAsync(bg_cmd);
+//		rc = a1.SendSdoUpload(0,4,0x607A,0);  //rc is current in mA
+//		cout << "SDO returned: " << rc << endl;
+
+		char* xq_cmd = "XQ##P2P_Abs(2000,1000)";
+		unsigned char* xq_ucmd = (unsigned char*) xq_cmd;
+		unsigned char len = 22;
+		a1.ElmoExecute(xq_ucmd, len);
 
 		//a1.SendCmdViaSdoDownload(1,pa_cmd,0);
 		//a1.SendCmdViaSdoUpload(l_pos,pa_cmd,0);
