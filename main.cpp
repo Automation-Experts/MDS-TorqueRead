@@ -81,10 +81,11 @@ int main()
 		char* p_cmd = "PQ";
 		//char * c_pt = cmd;
 
-		short int rc = 0;
+		short int a1_read = 0, a2_read = 0;
 
 		int sdo_delay = 0, run_limit = 0;
 		a1.PowerOn();
+		a2.PowerOn();
 		cout << "a1 is powered on!" << endl;
 
 		char* mo_cmd = "MO";
@@ -97,7 +98,6 @@ int main()
 
 		//char pa_cmd []= {'P','A','\0'};
 		char* bg_cmd = "BG";
-		char* pa_cmd = "PA";
 
 //		a1.ElmoSetAsyncArray(pa_cmd,0,pos);
 //		a1.ElmoCallAsync(bg_cmd);
@@ -107,25 +107,37 @@ int main()
 		char* xq_cmd = "XQ##P2P_Abs(2000,1000)";
 
 		char* tc_cmd = "TC=0.2";
+		char* pa_cmd = "PA[1]=4000";
 		unsigned char* cmd = (unsigned char*) tc_cmd;
+		unsigned char* a2_cmd = (unsigned char*) pa_cmd;
 		unsigned char len = 6;
 		a1.ElmoExecute(cmd, len);
+		//a2.ElmoExecute(a2_cmd, len);
+		a2.MoveVelocity(2000);
+		//a2.ElmoCallAsync(bg_cmd);
 		//a1.ElmoCallAsync(bg_cmd);
 
 		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_limit < 15000)
 		{
 			giXStatus = a1.ReadStatus();
+			giYStatus = a2.ReadStatus();
 
 			if (sdo_delay++ == 250)
 			{
 				//a1.SendSdoUploadAsync(0,4,0x6077,0);
 				//a1.RetreiveSdoUploadAsync(rc);
-				rc = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
-				cout << "SDO returned: " << rc << endl;
+				a1_read = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
+				a2_read = a2.SendSdoUpload(0,4,0x6077,0);
+				cout << "---- A1 current: " << a1_read << "  ---- A2 current: " << a2_read << endl;
 				sdo_delay = 0;
 			}
 			usleep(500);
 		}
+
+		a1.PowerOff();
+		a2.Stop();
+		a2.PowerOff();
+
 
 		//a1.SendCmdViaSdoDownload(1,pa_cmd,0);
 		//a1.SendCmdViaSdoUpload(l_pos,pa_cmd,0);
@@ -287,14 +299,14 @@ void MainInit()
 	//
 	// TODO: Update number of necessary axes:
 	//
-	cout << "Initializing a1..." << endl;
+	cout << "Initializing a1 and a2..." << endl;
 	a1.InitAxisData("a01",gConnHndl) ;
-	//a2.InitAxisData("a02",gConnHndl) ;
+	a2.InitAxisData("a02",gConnHndl) ;
 	//v1.InitAxisData("v01",gConnHndl);
 	//
 	// Set default motion parameters. TODO: Update for all axes.
 	a1.SetDefaultParams(stSingleDefault) ;
-	//a2.SetDefaultParams(stSingleDefault) ;
+	a2.SetDefaultParams(stSingleDefault) ;
 	//v1.SetDefaultParams(stGroupDefault);
 	//
 
@@ -319,17 +331,17 @@ void MainInit()
 		}
 	}
 	//
-//	giYStatus 	= a2.ReadStatus() ;
-//	if(giYStatus & NC_AXIS_ERROR_STOP_MASK)
-//	{
-//		a2.Reset() ;
-//		giYStatus 	= a2.ReadStatus() ;
-//		if(giYStatus & NC_AXIS_ERROR_STOP_MASK)
-//		{
-//			cout << "Axis a2 in Error Stop. Aborting." ;
-//			exit(0) ;
-//		}
-//	}
+	giYStatus 	= a2.ReadStatus() ;
+	if(giYStatus & NC_AXIS_ERROR_STOP_MASK)
+	{
+		a2.Reset() ;
+		giYStatus 	= a2.ReadStatus() ;
+		if(giYStatus & NC_AXIS_ERROR_STOP_MASK)
+		{
+			cout << "Axis a2 in Error Stop. Aborting." ;
+			exit(0) ;
+		}
+	}
 	//
 //	giGroupStatus = v1.ReadStatus();
 //	if(giGroupStatus & NC_GROUP_ERROR_STOP_MASK)
