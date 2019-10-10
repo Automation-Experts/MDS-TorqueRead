@@ -106,11 +106,26 @@ int main()
 
 		char* xq_cmd = "XQ##P2P_Abs(2000,1000)";
 
-		char* full_pa_cmd = "PA[1]=2000";
-		unsigned char* xq_ucmd = (unsigned char*) xq_cmd;
-		unsigned char len = 2;
-		a1.ElmoExecute(xq_ucmd, len);
-		a1.ElmoCallAsync(bg_cmd);
+		char* tc_cmd = "TC=0.2";
+		unsigned char* cmd = (unsigned char*) tc_cmd;
+		unsigned char len = 6;
+		a1.ElmoExecute(cmd, len);
+		//a1.ElmoCallAsync(bg_cmd);
+
+		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_limit < 15000)
+		{
+			giXStatus = a1.ReadStatus();
+
+			if (sdo_delay++ == 250)
+			{
+				//a1.SendSdoUploadAsync(0,4,0x6077,0);
+				//a1.RetreiveSdoUploadAsync(rc);
+				rc = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
+				cout << "SDO returned: " << rc << endl;
+				sdo_delay = 0;
+			}
+			usleep(500);
+		}
 
 		//a1.SendCmdViaSdoDownload(1,pa_cmd,0);
 		//a1.SendCmdViaSdoUpload(l_pos,pa_cmd,0);
