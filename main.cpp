@@ -25,6 +25,7 @@
 #include <iostream>
 #include <sys/time.h>			// For time structure
 #include <signal.h>				// For Timer mechanism
+#include <string.h>
 /*
 ============================================================================
  Function:				main()
@@ -51,35 +52,8 @@ int main()
 		// Changes the NC motion mode, according to communication type (ETHERCAT / CAN).
 		ChangeToRelevantMode();
 
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//
-		///////////////////////////////////////////////// Group Enable //////////////////////////////////////////////
-		//
-		// Group Enable.
-
 		cout << "Reading a1 status..." << endl;
 		giXStatus 	= a1.ReadStatus() ;
-
-		int   iValGet,
-
-		iValSet;
-		float   fValGet;
-		int    loopCount,
-		iMax;
-		char* cPdrvCmd;
-
-		//printf("\n     %s:", __func__);
-
-		iValSet = 5000;
-		loopCount = 0;
-		iMax = 100;
-		cPdrvCmd = "px";
-
-		float sync_param = 0;
-		//float& pt = &sync_param;
-		char* i_cmd = "IQ";
-		char* p_cmd = "PQ";
-		//char * c_pt = cmd;
 
 		short int a1_read = 0, a2_read = 0;
 
@@ -88,50 +62,35 @@ int main()
 		a2.PowerOn();
 		cout << "a1 is powered on!" << endl;
 
-		char* mo_cmd = "MO";
+		//string xq_str = "XQ##P2P_Abs(2000,1000)";
+		string tc_str = "TC=0.2";
+		//string pa_str = "PA[1]=4000";
 
-		int pos = 2000;
+		char tc_cmd[tc_str.length() + 1];
+		strcpy(tc_cmd, tc_str.c_str());
+		unsigned char * tc_ucmd = (unsigned char *) tc_cmd;
 
-		float fpos = 4000;
-		//char bg_cmd []= {'B','G','\0'};
-
-
-		//char pa_cmd []= {'P','A','\0'};
-		char* bg_cmd = "BG";
-
-//		a1.ElmoSetAsyncArray(pa_cmd,0,pos);
-//		a1.ElmoCallAsync(bg_cmd);
-//		rc = a1.SendSdoUpload(0,4,0x607A,0);  //rc is current in mA
-//		cout << "SDO returned: " << rc << endl;
-
-		char* xq_cmd = "XQ##P2P_Abs(2000,1000)";
-
-		char* tc_cmd = "TC=0.2";
-		char* pa_cmd = "PA[1]=4000";
-		unsigned char* cmd = (unsigned char*) tc_cmd;
-		unsigned char* a2_cmd = (unsigned char*) pa_cmd;
-		unsigned char len = 6;
+		unsigned char* cmd = tc_ucmd;
+		unsigned char len = tc_str.length();
 		a1.ElmoExecute(cmd, len);
 		//a2.ElmoExecute(a2_cmd, len);
 		a2.MoveVelocity(2000);
 		//a2.ElmoCallAsync(bg_cmd);
 		//a1.ElmoCallAsync(bg_cmd);
 
-		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_limit < 15000)
+		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_limit < 15)
 		{
 			giXStatus = a1.ReadStatus();
 			giYStatus = a2.ReadStatus();
 
-			if (sdo_delay++ == 250)
-			{
-				//a1.SendSdoUploadAsync(0,4,0x6077,0);
-				//a1.RetreiveSdoUploadAsync(rc);
-				a1_read = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
-				a2_read = a2.SendSdoUpload(0,4,0x6077,0);
-				cout << "---- A1 current: " << a1_read << "  ---- A2 current: " << a2_read << endl;
-				sdo_delay = 0;
-			}
-			usleep(500);
+			//a1.SendSdoUploadAsync(0,4,0x6077,0);
+			//a1.RetreiveSdoUploadAsync(rc);
+			a1_read = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
+			a2_read = a2.SendSdoUpload(0,4,0x6077,0);
+			cout << "---- A1 current: " << a1_read << "  ---- A2 current: " << a2_read << endl;
+			sdo_delay = 0;
+
+			usleep(500000);
 		}
 
 		a1.PowerOff();
@@ -552,7 +511,10 @@ void ChangeToRelevantMode()
 		//
 		giXOpMode =  a1.GetOpMode();
 		while ( giXOpMode != OPM402_PROFILE_VELOCITY_MODE)
+		{
+			//a1.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
 			giXOpMode =  a1.GetOpMode();
+		}
 		//
 //		a2.SetOpMode(OPM402_INTERPOLATED_POSITION_MODE);
 //		//
