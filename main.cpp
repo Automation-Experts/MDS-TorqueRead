@@ -42,138 +42,79 @@
 ============================================================================
 */
 
-int main()
+int main(int argc, char *argv[])
 {
 	try
 	{
+		int sleep_ms = 0;
+		// Note that the first argument is always opening a udp socket
+		if (argc > 1)
+		{
+			sleep_ms = atoi(argv[1]);
+			if(!sleep_ms)
+			{
+				cout << "Sleep timer was invalid or 0" << endl;
+				exit(0);
+			}
+		}
+		else
+		{
+			cout << "Error: Missing Arguments" << endl;
+			usage();
+		}
+
+
 		//	Initialize system, axes and all needed initializations
 		MainInit();
 		cout << "Reading communication mode..." << endl;
 		// Changes the NC motion mode, according to communication type (ETHERCAT / CAN).
 		ChangeToRelevantMode();
 
-		cout << "Reading a1 status..." << endl;
-		giXStatus 	= a1.ReadStatus() ;
+		cout << "Reading a_axis status..." << endl;
+		giXStatus 	= a_axis.ReadStatus() ;
 
-		short int a1_read = 0, a2_read = 0;
+		short int a_read = 0, b_read = 0;
+		short int a_pos = 0;
+		int run_count = 0;
+		int run_limit = 10*(1000/sleep_ms);
 
-		int sdo_delay = 0, run_limit = 0;
-		a1.PowerOn();
-		a2.PowerOn();
-		cout << "a1 is powered on!" << endl;
+		a_axis.PowerOn();
+		b_axis.PowerOn();
+
+		cout << "a_axis is powered on!" << endl;
 
 		//string xq_str = "XQ##P2P_Abs(2000,1000)";
-		string tc_str = "TC=0.2";
 		//string pa_str = "PA[1]=4000";
+		string tc_str = "TC=0.2";
+		executeInput(a_axis,tc_str);
 
-		char tc_cmd[tc_str.length() + 1];
-		strcpy(tc_cmd, tc_str.c_str());
-		unsigned char * tc_ucmd = (unsigned char *) tc_cmd;
+		//string pos_str = "PA[1]=8000";
+		//executeInput(b_axis,pos_str);
+		//executeInput(b_axis,"BG");
 
-		unsigned char* cmd = tc_ucmd;
-		unsigned char len = tc_str.length();
-		a1.ElmoExecute(cmd, len);
-		//a2.ElmoExecute(a2_cmd, len);
-		a2.MoveVelocity(2000);
-		//a2.ElmoCallAsync(bg_cmd);
-		//a1.ElmoCallAsync(bg_cmd);
+		b_axis.SetPosition(0,0);
+		b_axis.MoveAbsolute(8000,2000);
 
-		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_limit < 15)
+		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_count < run_limit)
 		{
-			giXStatus = a1.ReadStatus();
-			giYStatus = a2.ReadStatus();
+			giXStatus = a_axis.ReadStatus();
+			giYStatus = b_axis.ReadStatus();
 
 			//a1.SendSdoUploadAsync(0,4,0x6077,0);
-			//a1.RetreiveSdoUploadAsync(rc);
-			a1_read = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
-			a2_read = a2.SendSdoUpload(0,4,0x6077,0);
-			cout << "---- A1 current: " << a1_read << "  ---- A2 current: " << a2_read << endl;
-			sdo_delay = 0;
+			a_read = a_axis.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
+			b_read = b_axis.SendSdoUpload(0,4,0x6077,0);
+			cout << "---- A current: " << a_read << "  ---- B current: " << b_read << endl;
 
-			usleep(500000);
+			a_pos = a_axis.SendSdoUpload(0,4,0x3091,0);
+			cout << "---- A pos: " << a_pos << endl;
+
+			usleep(sleep_ms * 1000);
 		}
 
-		a1.PowerOff();
-		a2.Stop();
-		a2.PowerOff();
-
-
-		//a1.SendCmdViaSdoDownload(1,pa_cmd,0);
-		//a1.SendCmdViaSdoUpload(l_pos,pa_cmd,0);
-
-		//a1.PowerOff();
-		//a1.ElmoSetAsyncArray(mo_cmd,1,2000);
-		//a1.ElmoSetSyncArray(bg_cmd,1,1);
-
-//		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_limit < 15000)
-//		{
-//			if (giXStatus & NC_AXIS_STAND_STILL_MASK)
-//			{
-//				a1.MoveVelocity(4500);
-//			}
-//			giXStatus = a1.ReadStatus();
-//
-//			if (sdo_delay++ == 250)
-//			{
-//				//a1.SendSdoUploadAsync(0,4,0x6077,0);
-//				//a1.RetreiveSdoUploadAsync(rc);
-//				rc = a1.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
-//				cout << "SDO returned: " << rc << endl;
-//				sdo_delay = 0;
-//			}
-//			usleep(1000);
-//		}
-
-		//a1.Stop();
-
-//		cout << "Performing PDO General Read..." << endl;
-//		unsigned char ucParam = 0;
-//		int val = a1.PDOGeneralRead(ucParam);
-//		cout << "PDO General Read value is: " << val << endl;
-
-//		v1.GroupEnable();
-//		//
-//		// Waiting for GroupEnable.
-//		// In the end of GroupEnable function the group should be in StandBy state.
-//		giGroupStatus = v1.ReadStatus();
-//		//
-//		while ( !(giGroupStatus & NC_GROUP_STANDBY_MASK) && !(giGroupStatus & NC_GROUP_ERROR_STOP_MASK ) )
-//				giGroupStatus = v1.ReadStatus();
-//		//
-//		if(giGroupStatus & NC_GROUP_ERROR_STOP_MASK)
-//		{
-//			cout << "Group v1 in Error Stop. Aborting." ;
-//			exit(0) ;
-//		}
-//		//
-//		cout<< "Group v1 is enabled" <<endl;
-//
-//		// Group Disable.
-//		v1.GroupDisable();
-//		//
-//		// Waiting for GroupDisable.
-//		// In the end of GroupDisable function the group should be in Disabled state.
-//		giGroupStatus = v1.ReadStatus();
-//		//
-//		while ( !(giGroupStatus & NC_GROUP_DISABLED_MASK) && !(giGroupStatus & NC_GROUP_ERROR_STOP_MASK ) )
-//				giGroupStatus = v1.ReadStatus();
-//		//
-//		if(giGroupStatus & NC_GROUP_ERROR_STOP_MASK)
-//		{
-//			cout << "Group v1 in Error Stop. Aborting." ;
-//			exit(0) ;
-//		}
-//		//
-//		cout<< "Group v1 is disabled" <<endl;
-		//
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//
-		// Close what needs to be closed before program termination
-		//MainClose();
-		//
 		// Terminate the application program back to the Operating System
+		MainClose();
 		cout << "End of program" << endl;
-		return 1;
+		return 0;
 	}
 	catch(CMMCException& exception)
 	{
@@ -187,6 +128,20 @@ int main()
 		MainClose();
 		exit(0);
 	}
+}
+
+void executeInput(CMMCSingleAxis& axis, string input)
+{
+	char input_array[input.length() + 1];
+	strcpy(input_array, input.c_str());
+	unsigned char * uarray = (unsigned char *) input_array;
+	axis.ElmoExecute(uarray, input.length());
+}
+
+void usage()
+{
+	cout << "Usage: MDS-TorqueRead logging_time_ms" << endl;
+	exit(0);
 }
 /*
 ============================================================================
@@ -258,43 +213,43 @@ void MainInit()
 	//
 	// TODO: Update number of necessary axes:
 	//
-	cout << "Initializing a1 and a2..." << endl;
-	a1.InitAxisData("a01",gConnHndl) ;
-	a2.InitAxisData("a02",gConnHndl) ;
+	cout << "Initializing a_axis and a2..." << endl;
+	a_axis.InitAxisData("a_axis",gConnHndl) ;
+	b_axis.InitAxisData("b_axis",gConnHndl) ;
 	//v1.InitAxisData("v01",gConnHndl);
 	//
 	// Set default motion parameters. TODO: Update for all axes.
-	a1.SetDefaultParams(stSingleDefault) ;
-	a2.SetDefaultParams(stSingleDefault) ;
+	a_axis.SetDefaultParams(stSingleDefault) ;
+	b_axis.SetDefaultParams(stSingleDefault) ;
 	//v1.SetDefaultParams(stGroupDefault);
 	//
 
 	// You may of course change internal parameters manually:
-	a1.m_fAcceleration = 960000.0;
-	a1.m_fDeceleration = 960000.0;
-	a1.m_fVelocity = 640000.0;
+	a_axis.m_fAcceleration = 960000.0;
+	a_axis.m_fDeceleration = 960000.0;
+	a_axis.m_fVelocity = 640000.0;
 	//a2.m_fAcceleration = 1621333.0;
 	//a2.m_fDeceleration = 1621333.0;
 	//a2.m_fVelocity = 1013333.0;
 	//
 
-	giXStatus 	= a1.ReadStatus() ;
+	giXStatus 	= a_axis.ReadStatus() ;
 	if(giXStatus & NC_AXIS_ERROR_STOP_MASK)
 	{
-		a1.Reset() ;
-		giXStatus 	= a1.ReadStatus() ;
+		a_axis.Reset() ;
+		giXStatus 	= a_axis.ReadStatus() ;
 		if(giXStatus & NC_AXIS_ERROR_STOP_MASK)
 		{
-			cout << "Axis a1 in Error Stop. Aborting." ;
+			cout << "Axis a_axis in Error Stop. Aborting." ;
 			exit(0) ;
 		}
 	}
 	//
-	giYStatus 	= a2.ReadStatus() ;
+	giYStatus 	= b_axis.ReadStatus() ;
 	if(giYStatus & NC_AXIS_ERROR_STOP_MASK)
 	{
-		a2.Reset() ;
-		giYStatus 	= a2.ReadStatus() ;
+		b_axis.Reset() ;
+		giYStatus 	= b_axis.ReadStatus() ;
 		if(giYStatus & NC_AXIS_ERROR_STOP_MASK)
 		{
 			cout << "Axis a2 in Error Stop. Aborting." ;
@@ -338,6 +293,10 @@ void MainClose()
 //
 //	Here will come code for all closing processes
 //
+	a_axis.Stop(MC_BUFFERED_MODE);
+	b_axis.Stop(MC_BUFFERED_MODE);
+	a_axis.PowerOff(MC_BUFFERED_MODE);
+	b_axis.PowerOff(MC_BUFFERED_MODE);
 	MMC_CloseConnection(gConnHndl) ;
 	return;
 }
@@ -489,12 +448,12 @@ void ChangeToRelevantMode()
 	// ETHERCAT
 	if( dConnectionType == eCOMM_TYPE_ETHERCAT )
 	{
-//		a1.SetOpMode (OPM402_CYCLIC_SYNC_POSITION_MODE);
+//		a_axis.SetOpMode (OPM402_CYCLIC_SYNC_POSITION_MODE);
 //		//
 //		// Waiting for Set Operation Mode
-//		giXOpMode = (OPM402)a1.GetOpMode();
+//		giXOpMode = (OPM402)a_axis.GetOpMode();
 //		while ( giXOpMode != OPM402_CYCLIC_SYNC_POSITION_MODE )
-//			giXOpMode =  a1.GetOpMode();
+//			giXOpMode =  a_axis.GetOpMode();
 //		//
 //		a2.SetOpMode (OPM402_CYCLIC_SYNC_POSITION_MODE);
 //		//
@@ -506,23 +465,25 @@ void ChangeToRelevantMode()
 	// CAN
 	else
 	{
-		a1.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
+		a_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
 		// Waiting for Set Operation Mode
 		//
-		giXOpMode =  a1.GetOpMode();
-		while ( giXOpMode != OPM402_PROFILE_VELOCITY_MODE)
+		giXOpMode =  a_axis.GetOpMode();
+		while ( giXOpMode != OPM402_PROFILE_POSITION_MODE)
 		{
-			//a1.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
-			giXOpMode =  a1.GetOpMode();
+			//a_axis.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
+			giXOpMode =  a_axis.GetOpMode();
 		}
-		//
-//		a2.SetOpMode(OPM402_INTERPOLATED_POSITION_MODE);
+
+//		b_axis.SetOpMode(OPM402_TORQUE_PROFILE_MODE);
 //		//
 //		// Waiting for Set Operation Mode
-//		giYOpMode =  a2.GetOpMode();
-//		while ( giYOpMode != OPM402_INTERPOLATED_POSITION_MODE )
-//			giYOpMode =  a2.GetOpMode();
+//		giYOpMode =  b_axis.GetOpMode();
+//		while ( giYOpMode != OPM402_TORQUE_PROFILE_MODE )
+//			giYOpMode =  b_axis.GetOpMode();
 	}
 }
+
+
 //
 //
