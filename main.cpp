@@ -169,8 +169,8 @@ void usage()
 void MainInit()
 {
 	// Here will come initialization code for all system, axes, communication etc.
-	//
 	struct sigaction stSigAction;
+	float fRes;
 	//
 	// Init the sigAction structure.
 	memset(&stSigAction, 0, sizeof(stSigAction));
@@ -180,6 +180,24 @@ void MainInit()
 	//
 	// InitializeCommunication to the GMAS:
 	gConnHndl = cConn.ConnectIPCEx(0x7fffffff,(MMC_MB_CLBK)CallbackFunc) ;
+
+	a_axis.ConfigPDO(PDO_NUM_3,PDO_PARAM_REG,NC_COMM_EVENT_GROUP1,1,1,1,1,1) ;
+	CMMCPPGlobal::Instance()->SetSyncTime(gConnHndl, SYNC_MULTIPLIER) ;
+	//
+
+	// Set UM (control loop type) to
+	int um_type = UM_TORQUE_CONTROL_LOOP;
+	a_axis.ElmoSetAsyncParam("UM", um_type) ;
+	um_type = UM_POSITION_CONTROL_LOOP;
+	b_axis.ElmoSetAsyncParam("UM", um_type) ;
+	//
+	// Download UF which is only used to hold user parameters
+	fRes = 12.3 ;
+	a_axis.ElmoSetAsyncArray("UF",1,fRes) ;
+	fRes = 0.0 ;
+	a_axis.ElmoGetSyncArray("UF",1,fRes);
+	cout << "UF result: " << fRes << endl;
+
 	//
 	// Register Run Time Error Callback function
 	CMMCPPGlobal::Instance()->RegisterRTE(OnRunTimeError);

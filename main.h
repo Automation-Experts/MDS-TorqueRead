@@ -28,6 +28,11 @@ void usage();
  ============================================================================
  */
 #define 	MAX_AXES				2		// number of Physical axes in the system. TODO Update MAX_AXES accordingly
+#define 	UM_TORQUE_CONTROL_LOOP 		1
+#define 	UM_SPEED_CONTROL_LOOP		2
+#define		UM_POSITION_CONTROL_LOOP	5
+
+#define 	SYNC_MULTIPLIER				1
 /*
  ============================================================================
  Application global variables
