@@ -66,47 +66,55 @@ int main(int argc, char *argv[])
 
 		//	Initialize system, axes and all needed initializations
 		MainInit();
-		cout << "Reading communication mode..." << endl;
-		// Changes the NC motion mode, according to communication type (ETHERCAT / CAN).
+		// Changes op mode type based on (ETHERCAT / CAN).
 		ChangeToRelevantMode();
-
-		cout << "Reading a_axis status..." << endl;
-		giXStatus 	= a_axis.ReadStatus() ;
 
 		short int a_read = 0, b_read = 0;
 		short int a_pos = 0;
 		int run_count = 0;
 		int run_limit = 10*(1000/sleep_ms);
 
-		a_axis.PowerOn();
-		b_axis.PowerOn();
+		a_axis.PowerOn(MC_BUFFERED_MODE);
+		b_axis.PowerOn(MC_BUFFERED_MODE);
 
-		cout << "a_axis is powered on!" << endl;
+		while( NC_AXIS_DONE_MASK & giXStatus)
+			giXStatus = a_axis.ReadStatus();
+		while( NC_AXIS_DONE_MASK & giYStatus)
+			giYStatus = b_axis.ReadStatus();
 
-		//string xq_str = "XQ##P2P_Abs(2000,1000)";
-		//string pa_str = "PA[1]=4000";
-		string tc_str = "TC=0.2";
-		executeInput(a_axis,tc_str);
+
+		cout << "Axes initialized..." << endl;
 
 		//string pos_str = "PA[1]=8000";
 		//executeInput(b_axis,pos_str);
 		//executeInput(b_axis,"BG");
 
-		b_axis.SetPosition(0,0);
-		b_axis.MoveAbsolute(8000,2000);
+		b_axis.SetPosition(0,OPM402_PROFILE_POSITION_MODE);
+		b_axis.MoveAbsolute(12000,2000, MC_BUFFERED_MODE);
+
+		//string xq_str = "XQ##P2P_Abs(2000,1000)";
+		//string pa_str = "PA[1]=4000";
+		string tc_str = "TC=0.4";
+		executeInput(a_axis,tc_str);
+
 
 		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_count < run_limit)
 		{
 			giXStatus = a_axis.ReadStatus();
 			giYStatus = b_axis.ReadStatus();
 
+			if (run_count == 2)
+			{
+				executeInput(a_axis,"TC=0.14");
+			}
+
 			//a1.SendSdoUploadAsync(0,4,0x6077,0);
 			a_read = a_axis.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
 			b_read = b_axis.SendSdoUpload(0,4,0x6077,0);
 			cout << "---- A current: " << a_read << "  ---- B current: " << b_read << endl;
 
-			a_pos = a_axis.SendSdoUpload(0,4,0x3091,0);
-			cout << "---- A pos: " << a_pos << endl;
+			a_pos = a_axis.SendSdoUpload(0,4,0x6064,0);
+			//cout << "---- A pos: " << a_pos << endl;
 
 			usleep(sleep_ms * 1000);
 		}
@@ -118,8 +126,8 @@ int main(int argc, char *argv[])
 	}
 	catch(CMMCException& exception)
 	{
-		printf("Exception in function %s, axis ref=%s, err=%d, status=%d, %d, bye\n", exception.what(), exception.axisName(), exception.error(), exception.status(), exception.axisRef());
 		MainClose();
+		printf("Exception in function %s, axis ref=%s, err=%d, status=%d, %d, bye\n", exception.what(), exception.axisName(), exception.error(), exception.status(), exception.axisRef());
 		exit(0);
 	}
 	catch (...)
@@ -297,6 +305,21 @@ void MainClose()
 	b_axis.Stop(MC_BUFFERED_MODE);
 	a_axis.PowerOff(MC_BUFFERED_MODE);
 	b_axis.PowerOff(MC_BUFFERED_MODE);
+
+	while( NC_AXIS_DISABLED_MASK & giXStatus)
+		giXStatus = a_axis.ReadStatus();
+	while( NC_AXIS_DISABLED_MASK & giYStatus)
+		giYStatus = b_axis.ReadStatus();
+
+
+	a_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
+	giXOpMode =  a_axis.GetOpMode();
+	while ( giXOpMode != OPM402_PROFILE_POSITION_MODE)
+	{
+		//a_axis.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
+		giXOpMode =  a_axis.GetOpMode();
+	}
+
 	MMC_CloseConnection(gConnHndl) ;
 	return;
 }
@@ -324,6 +347,12 @@ int CallbackFunc(unsigned char* recvBuffer, short recvBufferSize,void* lpsock)
 		// Please note - The emergency event was registered.
 		// printf("Emergency Event received\r\n") ;
 		break ;
+	case ASYNC_REPLY_EVT:
+//		printf("buffer size: %d  ", recvBufferSize);
+//		for (int i = 0; i < recvBufferSize; i++)
+//			cout << recvBuffer[i];
+//		cout << endl;
+		break;
 	case MOTIONENDED_EVT:
 		printf("Motion Ended Event received\r\n") ;
 		break ;
@@ -475,12 +504,12 @@ void ChangeToRelevantMode()
 			giXOpMode =  a_axis.GetOpMode();
 		}
 
-//		b_axis.SetOpMode(OPM402_TORQUE_PROFILE_MODE);
-//		//
-//		// Waiting for Set Operation Mode
-//		giYOpMode =  b_axis.GetOpMode();
-//		while ( giYOpMode != OPM402_TORQUE_PROFILE_MODE )
-//			giYOpMode =  b_axis.GetOpMode();
+		b_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
+		//
+		// Waiting for Set Operation Mode
+		giYOpMode =  b_axis.GetOpMode();
+		while ( giYOpMode != OPM402_PROFILE_POSITION_MODE )
+			giYOpMode =  b_axis.GetOpMode();
 	}
 }
 
