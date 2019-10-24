@@ -91,6 +91,10 @@ int main(int argc, char *argv[])
 		int run_count = 0;
 		int run_limit = 20*(1000/sleep_ms);
 
+		executeInput(lift_axis,"HM[1]=0");
+		executeInput(lift_axis,"HM[3]=0");
+		executeInput(lift_axis,"HM[1]=1");
+
 		string um_str = "UM=1";
 		executeInput(load_axis, um_str);
 		um_str = "UM=5";
@@ -102,14 +106,16 @@ int main(int argc, char *argv[])
 
 		int current_position = 0;
 		vector<BPosition> positions;
-		BPosition p1 = {8000, 2000, MC_BUFFERED_MODE};
+		BPosition p1 = {4000, 2000, MC_BUFFERED_MODE};
 		BPosition p2 = {0, 4000, MC_BUFFERED_MODE};
 		BPosition p3 = {8000, 8000, MC_BUFFERED_MODE};
 		BPosition p4 = {400000, 100000, MC_BUFFERED_MODE};
 		BPosition p5 = {0, 100000, MC_BUFFERED_MODE};
+		BPosition p6 = {0, 8000, MC_BUFFERED_MODE};
 		positions.push_back(p1);
 		positions.push_back(p2);
 		positions.push_back(p3);
+		positions.push_back(p6);
 //		positions.push_back(p4);
 //		positions.push_back(p5);
 
@@ -125,7 +131,10 @@ int main(int argc, char *argv[])
 		//executeInput(b_axis,pos_str);
 		//executeInput(b_axis,"BG");
 
+		cout << "Lift position: " << lift_axis.GetActualPosition() << endl;
+
 		lift_axis.SetPosition(0,OPM402_PROFILE_POSITION_MODE);
+		cout << "Position reset: " << lift_axis.GetActualPosition() << endl;
 
 //		if (lift_status & NC_AXIS_STAND_STILL_MASK)
 //		{
@@ -174,6 +183,8 @@ int main(int argc, char *argv[])
 				cout << endl << endl;
 			}
 		}
+
+		cout << "Final position: " << lift_axis.GetActualPosition() << endl;
 
 		// Terminate the application program back to the Operating System
 		MainClose();
