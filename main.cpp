@@ -23,6 +23,8 @@
 #include "mmcpplib.h"
 #include "main.h"		// Application header file.
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <sys/time.h>			// For time structure
 #include <signal.h>				// For Timer mechanism
 #include <string.h>
@@ -42,13 +44,21 @@
 ============================================================================
 */
 
+struct BPosition
+{
+	double pos;
+	float vel;
+	int mode;
+};
+
 int main(int argc, char *argv[])
 {
 	try
 	{
 		int sleep_ms = 0;
+		int torque_mA = 0;
 		// Note that the first argument is always opening a udp socket
-		if (argc > 1)
+		if (argc > 2)
 		{
 			sleep_ms = atoi(argv[1]);
 			if(!sleep_ms)
@@ -56,6 +66,13 @@ int main(int argc, char *argv[])
 				cout << "Sleep timer was invalid or 0" << endl;
 				exit(0);
 			}
+			torque_mA = atoi(argv[2]);
+			if (torque_mA == 0 || torque_mA > 2000)
+			{
+				cout << "Torque was over 2000 or 0" << endl;
+				exit(0);
+			}
+
 		}
 		else
 		{
@@ -69,18 +86,37 @@ int main(int argc, char *argv[])
 		// Changes op mode type based on (ETHERCAT / CAN).
 		ChangeToRelevantMode();
 
-		short int a_read = 0, b_read = 0;
-		short int a_pos = 0;
+		short int load_read = 0, lift_read = 0;
+		short int load_pos = 0;
 		int run_count = 0;
-		int run_limit = 10*(1000/sleep_ms);
+		int run_limit = 20*(1000/sleep_ms);
 
-		a_axis.PowerOn(MC_BUFFERED_MODE);
-		b_axis.PowerOn(MC_BUFFERED_MODE);
+		string um_str = "UM=1";
+		executeInput(load_axis, um_str);
+		um_str = "UM=5";
+		executeInput(lift_axis, um_str);
 
-		while( NC_AXIS_DONE_MASK & giXStatus)
-			giXStatus = a_axis.ReadStatus();
-		while( NC_AXIS_DONE_MASK & giYStatus)
-			giYStatus = b_axis.ReadStatus();
+		// A is load, B is lift
+		load_axis.PowerOn(MC_BUFFERED_MODE);
+		lift_axis.PowerOn(MC_BUFFERED_MODE);
+
+		int current_position = 0;
+		vector<BPosition> positions;
+		BPosition p1 = {8000, 2000, MC_BUFFERED_MODE};
+		BPosition p2 = {0, 4000, MC_BUFFERED_MODE};
+		BPosition p3 = {8000, 8000, MC_BUFFERED_MODE};
+		BPosition p4 = {400000, 100000, MC_BUFFERED_MODE};
+		BPosition p5 = {0, 100000, MC_BUFFERED_MODE};
+		positions.push_back(p1);
+		positions.push_back(p2);
+		positions.push_back(p3);
+//		positions.push_back(p4);
+//		positions.push_back(p5);
+
+		while( NC_AXIS_DONE_MASK & lift_status)
+			lift_status = load_axis.ReadStatus();
+		while( NC_AXIS_DONE_MASK & load_status)
+			load_status = lift_axis.ReadStatus();
 
 
 		cout << "Axes initialized..." << endl;
@@ -89,34 +125,54 @@ int main(int argc, char *argv[])
 		//executeInput(b_axis,pos_str);
 		//executeInput(b_axis,"BG");
 
-		b_axis.SetPosition(0,OPM402_PROFILE_POSITION_MODE);
-		b_axis.MoveAbsolute(12000,2000, MC_BUFFERED_MODE);
+		lift_axis.SetPosition(0,OPM402_PROFILE_POSITION_MODE);
+
+//		if (lift_status & NC_AXIS_STAND_STILL_MASK)
+//		{
+//			BPosition p = positions[current_position];
+//			current_position++;
+//			lift_axis.MoveAbsolute(p.pos, p.vel, MC_BUFFERED_MODE);
+//		}
 
 		//string xq_str = "XQ##P2P_Abs(2000,1000)";
 		//string pa_str = "PA[1]=4000";
-		string tc_str = "TC=0.4";
-		executeInput(a_axis,tc_str);
 
 
-		while (! (giXStatus & NC_AXIS_ERROR_STOP_MASK) && ++run_count < run_limit)
+		string tc_str = "TC=";
+		float torque_A = torque_mA / 1000.0;
+		stringstream stream;
+		stream << fixed << setprecision(2) << torque_A;
+		tc_str.append(stream.str());
+		cout << "Sending: " << tc_str << endl;
+		executeInput(load_axis,tc_str);
+
+		while (! (lift_status & NC_AXIS_ERROR_STOP_MASK) && ++run_count < run_limit)
 		{
-			giXStatus = a_axis.ReadStatus();
-			giYStatus = b_axis.ReadStatus();
-
-			if (run_count == 2)
-			{
-				executeInput(a_axis,"TC=0.14");
-			}
+			lift_status = load_axis.ReadStatus();
+			load_status = lift_axis.ReadStatus();
 
 			//a1.SendSdoUploadAsync(0,4,0x6077,0);
-			a_read = a_axis.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
-			b_read = b_axis.SendSdoUpload(0,4,0x6077,0);
-			cout << "---- A current: " << a_read << "  ---- B current: " << b_read << endl;
+			load_read = load_axis.SendSdoUpload(0,4,0x6077,0);  //rc is current in mA
+			lift_read = lift_axis.SendSdoUpload(0,4,0x6077,0);
+			load_read *= 10;
+			lift_read *= 10;
+			cout << "---- Load Current: " << load_read << "  ---- Lift Current: " << lift_read << endl;
 
-			a_pos = a_axis.SendSdoUpload(0,4,0x6064,0);
+			load_pos = load_axis.SendSdoUpload(0,4,0x6064,0);
 			//cout << "---- A pos: " << a_pos << endl;
 
 			usleep(sleep_ms * 1000);
+			if (load_status & NC_AXIS_STAND_STILL_MASK)
+			{
+				if (current_position >= positions.size())
+				{
+					break;
+				}
+				BPosition p = positions[current_position];
+				lift_axis.MoveAbsolute(p.pos, p.vel, MC_BUFFERED_MODE);
+				current_position++;
+				cout << endl << endl;
+			}
 		}
 
 		// Terminate the application program back to the Operating System
@@ -181,22 +237,22 @@ void MainInit()
 	// InitializeCommunication to the GMAS:
 	gConnHndl = cConn.ConnectIPCEx(0x7fffffff,(MMC_MB_CLBK)CallbackFunc) ;
 
-	a_axis.ConfigPDO(PDO_NUM_3,PDO_PARAM_REG,NC_COMM_EVENT_GROUP1,1,1,1,1,1) ;
-	CMMCPPGlobal::Instance()->SetSyncTime(gConnHndl, SYNC_MULTIPLIER) ;
+//	a_axis.ConfigPDO(PDO_NUM_3,PDO_PARAM_REG,NC_COMM_EVENT_GROUP1,1,1,1,1,1) ;
+//	CMMCPPGlobal::Instance()->SetSyncTime(gConnHndl, SYNC_MULTIPLIER) ;
 	//
 
 	// Set UM (control loop type) to
-	int um_type = UM_TORQUE_CONTROL_LOOP;
-	a_axis.ElmoSetAsyncParam("UM", um_type) ;
-	um_type = UM_POSITION_CONTROL_LOOP;
-	b_axis.ElmoSetAsyncParam("UM", um_type) ;
+//	int um_type = UM_TORQUE_CONTROL_LOOP;
+//	a_axis.ElmoSetAsyncParam("UM", um_type) ;
+//	um_type = UM_POSITION_CONTROL_LOOP;
+//	b_axis.ElmoSetAsyncParam("UM", um_type) ;
 	//
 	// Download UF which is only used to hold user parameters
-	fRes = 12.3 ;
-	a_axis.ElmoSetAsyncArray("UF",1,fRes) ;
-	fRes = 0.0 ;
-	a_axis.ElmoGetSyncArray("UF",1,fRes);
-	cout << "UF result: " << fRes << endl;
+//	fRes = 12.3 ;
+//	a_axis.ElmoSetAsyncArray("UF",1,fRes) ;
+//	fRes = 0.0 ;
+//	a_axis.ElmoGetSyncArray("UF",1,fRes);
+//	cout << "UF result: " << fRes << endl;
 
 	//
 	// Register Run Time Error Callback function
@@ -240,43 +296,43 @@ void MainInit()
 	// TODO: Update number of necessary axes:
 	//
 	cout << "Initializing a_axis and a2..." << endl;
-	a_axis.InitAxisData("a_axis",gConnHndl) ;
-	b_axis.InitAxisData("b_axis",gConnHndl) ;
+	load_axis.InitAxisData("a_axis",gConnHndl) ;
+	lift_axis.InitAxisData("b_axis",gConnHndl) ;
 	//v1.InitAxisData("v01",gConnHndl);
 	//
 	// Set default motion parameters. TODO: Update for all axes.
-	a_axis.SetDefaultParams(stSingleDefault) ;
-	b_axis.SetDefaultParams(stSingleDefault) ;
+	load_axis.SetDefaultParams(stSingleDefault) ;
+	lift_axis.SetDefaultParams(stSingleDefault) ;
 	//v1.SetDefaultParams(stGroupDefault);
 	//
 
 	// You may of course change internal parameters manually:
-	a_axis.m_fAcceleration = 960000.0;
-	a_axis.m_fDeceleration = 960000.0;
-	a_axis.m_fVelocity = 640000.0;
+	load_axis.m_fAcceleration = 960000.0;
+	load_axis.m_fDeceleration = 960000.0;
+	load_axis.m_fVelocity = 640000.0;
 	//a2.m_fAcceleration = 1621333.0;
 	//a2.m_fDeceleration = 1621333.0;
 	//a2.m_fVelocity = 1013333.0;
 	//
 
-	giXStatus 	= a_axis.ReadStatus() ;
-	if(giXStatus & NC_AXIS_ERROR_STOP_MASK)
+	lift_status 	= load_axis.ReadStatus() ;
+	if(lift_status & NC_AXIS_ERROR_STOP_MASK)
 	{
-		a_axis.Reset() ;
-		giXStatus 	= a_axis.ReadStatus() ;
-		if(giXStatus & NC_AXIS_ERROR_STOP_MASK)
+		load_axis.Reset() ;
+		lift_status 	= load_axis.ReadStatus() ;
+		if(lift_status & NC_AXIS_ERROR_STOP_MASK)
 		{
 			cout << "Axis a_axis in Error Stop. Aborting." ;
 			exit(0) ;
 		}
 	}
 	//
-	giYStatus 	= b_axis.ReadStatus() ;
-	if(giYStatus & NC_AXIS_ERROR_STOP_MASK)
+	load_status 	= lift_axis.ReadStatus() ;
+	if(load_status & NC_AXIS_ERROR_STOP_MASK)
 	{
-		b_axis.Reset() ;
-		giYStatus 	= b_axis.ReadStatus() ;
-		if(giYStatus & NC_AXIS_ERROR_STOP_MASK)
+		lift_axis.Reset() ;
+		load_status 	= lift_axis.ReadStatus() ;
+		if(load_status & NC_AXIS_ERROR_STOP_MASK)
 		{
 			cout << "Axis a2 in Error Stop. Aborting." ;
 			exit(0) ;
@@ -319,23 +375,23 @@ void MainClose()
 //
 //	Here will come code for all closing processes
 //
-	a_axis.Stop(MC_BUFFERED_MODE);
-	b_axis.Stop(MC_BUFFERED_MODE);
-	a_axis.PowerOff(MC_BUFFERED_MODE);
-	b_axis.PowerOff(MC_BUFFERED_MODE);
+	load_axis.Stop(MC_BUFFERED_MODE);
+	lift_axis.Stop(MC_BUFFERED_MODE);
+	load_axis.PowerOff(MC_BUFFERED_MODE);
+	lift_axis.PowerOff(MC_BUFFERED_MODE);
 
-	while( NC_AXIS_DISABLED_MASK & giXStatus)
-		giXStatus = a_axis.ReadStatus();
-	while( NC_AXIS_DISABLED_MASK & giYStatus)
-		giYStatus = b_axis.ReadStatus();
+	while( NC_AXIS_DISABLED_MASK & lift_status)
+		lift_status = load_axis.ReadStatus();
+	while( NC_AXIS_DISABLED_MASK & load_status)
+		load_status = lift_axis.ReadStatus();
 
 
-	a_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
-	giXOpMode =  a_axis.GetOpMode();
+	load_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
+	giXOpMode =  load_axis.GetOpMode();
 	while ( giXOpMode != OPM402_PROFILE_POSITION_MODE)
 	{
 		//a_axis.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
-		giXOpMode =  a_axis.GetOpMode();
+		giXOpMode =  load_axis.GetOpMode();
 	}
 
 	MMC_CloseConnection(gConnHndl) ;
@@ -512,22 +568,22 @@ void ChangeToRelevantMode()
 	// CAN
 	else
 	{
-		a_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
+		load_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
 		// Waiting for Set Operation Mode
 		//
-		giXOpMode =  a_axis.GetOpMode();
+		giXOpMode =  load_axis.GetOpMode();
 		while ( giXOpMode != OPM402_PROFILE_POSITION_MODE)
 		{
 			//a_axis.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
-			giXOpMode =  a_axis.GetOpMode();
+			giXOpMode =  load_axis.GetOpMode();
 		}
 
-		b_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
+		lift_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
 		//
 		// Waiting for Set Operation Mode
-		giYOpMode =  b_axis.GetOpMode();
+		giYOpMode =  lift_axis.GetOpMode();
 		while ( giYOpMode != OPM402_PROFILE_POSITION_MODE )
-			giYOpMode =  b_axis.GetOpMode();
+			giYOpMode =  lift_axis.GetOpMode();
 	}
 }
 

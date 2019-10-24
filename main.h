@@ -40,8 +40,8 @@ void usage();
  */
 int giTerminate; // Flag to request program termination
 // 	Examples for data read from the GMAS core about the X, Y drives
-int giXStatus;
-int giYStatus;
+int lift_status;
+int load_status;
 int giGroupStatus;
 int giXOpMode;
 int giYOpMode;
@@ -53,7 +53,7 @@ int giYOpMode;
  */
 MMC_CONNECT_HNDL gConnHndl; // Connection Handle
 CMMCConnection cConn;
-CMMCSingleAxis a_axis, b_axis; // TODO : Update the names and number of the axes in the system
+CMMCSingleAxis load_axis, lift_axis; // TODO : Update the names and number of the axes in the system
 CMMCGroupAxis v1;
 MMC_MOTIONPARAMS_SINGLE stSingleDefault; // Single axis default data
 MMC_MOTIONPARAMS_GROUP stGroupDefault; // Group axis default data
