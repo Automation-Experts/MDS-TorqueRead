@@ -22,6 +22,7 @@ int CallbackFunc(unsigned char* recvBuffer, short recvBufferSize, void* lpsock);
 void ChangeToRelevantMode();
 void executeInput(CMMCSingleAxis& axis, string input);
 void usage();
+int startServer();
 /*
  ============================================================================
  General constants

@@ -28,6 +28,17 @@
 #include <sys/time.h>			// For time structure
 #include <signal.h>				// For Timer mechanism
 #include <string.h>
+
+
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <string.h>
+#define PORT 8080
+
+
 /*
 ============================================================================
  Function:				main()
@@ -51,8 +62,69 @@ struct BPosition
 	int mode;
 };
 
+namespace patch
+{
+    template < typename T > std::string to_string( const T& n )
+    {
+        std::ostringstream stm ;
+        stm << n ;
+        return stm.str() ;
+    }
+}
+
 int main(int argc, char *argv[])
 {
+	startServer();
+
+    int server_fd, new_socket, valread;
+    struct sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+    char buffer[1024] = {0};
+    char *hello = "Hello from server";
+
+    // Creating socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Forcefully attaching socket to the port 8080
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR ,
+                                                  &opt, sizeof(opt)))
+    {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons( PORT );
+
+    // Forcefully attaching socket to the port 8080
+    if (bind(server_fd, (struct sockaddr *)&address,
+                                 sizeof(address))<0)
+    {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+    if (listen(server_fd, 3) < 0)
+    {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+    if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
+                       (socklen_t*)&addrlen))<0)
+    {
+        perror("accept");
+        exit(EXIT_FAILURE);
+    }
+    valread = read( new_socket , buffer, 1024);
+    printf("%s\n",buffer );
+    send(new_socket , hello , strlen(hello) , 0 );
+    printf("Hello message sent\n");
+
+
 	try
 	{
 		int sleep_ms = 0;
@@ -165,7 +237,11 @@ int main(int argc, char *argv[])
 			lift_read = lift_axis.SendSdoUpload(0,4,0x6077,0);
 			load_read *= 10;
 			lift_read *= 10;
+			stringstream read_out;
+			read_out << "LO," << setprecision(2) << load_read << ", LI, " << lift_read << endl;
+			string str = read_out.str();
 			cout << "---- Load Current: " << load_read << "  ---- Lift Current: " << lift_read << endl;
+			send(new_socket , str.c_str() , str.length(), 0 );
 
 			load_pos = load_axis.SendSdoUpload(0,4,0x6064,0);
 			//cout << "---- A pos: " << a_pos << endl;
@@ -203,6 +279,11 @@ int main(int argc, char *argv[])
 		MainClose();
 		exit(0);
 	}
+}
+
+int startServer()
+{
+
 }
 
 void executeInput(CMMCSingleAxis& axis, string input)
@@ -422,6 +503,8 @@ void MainClose()
 //	Return Value	:	int																							//
 //	Modifications:	:	N/A																							//
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 int CallbackFunc(unsigned char* recvBuffer, short recvBufferSize,void* lpsock)
 {
 	// Which function ID was received ...
