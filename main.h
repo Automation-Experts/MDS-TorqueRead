@@ -22,7 +22,8 @@ int CallbackFunc(unsigned char* recvBuffer, short recvBufferSize, void* lpsock);
 void ChangeOpMode();
 void executeInput(CMMCSingleAxis& axis, string input);
 void usage();
-int startServer(int new_socket);
+int startServer();
+int getClientParams(int new_socket, int& torque_mA, int& sampling_ms );
 /*
  ============================================================================
  General constants
@@ -46,6 +47,10 @@ int load_status;
 int giGroupStatus;
 int loadOpMode;
 int liftOpMode;
+
+
+int new_socket;
+char buffer[1024] = { 0 };
 //
 /*
  ============================================================================

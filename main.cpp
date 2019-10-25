@@ -64,14 +64,13 @@ struct BPosition {
 };
 
 int main(int argc, char *argv[]) {
-	int new_socket;
 
 	short int load_read = 0, lift_read = 0;
 	short int load_pos = 0;
 	int torque_mA = 500;
 	int run_count = 0;
-	int sleep_ms = 200;
-	int run_limit = 20 * (1000 / sleep_ms);
+	int sampling_ms = 200;
+	int run_limit = 20 * (1000 / sampling_ms);
 
 	int current_position = 0;
 	vector<BPosition> positions;
@@ -85,6 +84,8 @@ int main(int argc, char *argv[]) {
 	positions.push_back(p2);
 	positions.push_back(p3);
 	positions.push_back(p6);
+
+	char *usage = "Usage: (torque_mA) (sampling_ms)";
 
 	string tc_str = "TC=";
 	float torque_A = torque_mA / 1000.0;
@@ -138,32 +139,24 @@ int main(int argc, char *argv[]) {
 
 			// A is load, B is lift
 
-
 			state = ServerInit;
 			break;
 		case ServerInit:
 			cout << "Waiting for client to connect..." << endl;
-			startServer(new_socket);
-			state = EndOrRestart;
+			startServer();
+			state = GetClientParams;
 			break;
 		case GetClientParams:
-			if (argc > 2) {
-				sleep_ms = atoi(argv[1]);
-				if (!sleep_ms) {
-					cout << "Sleep timer was invalid or 0" << endl;
-					exit(0);
-				}
-				torque_mA = atoi(argv[2]);
-				if (torque_mA == 0 || torque_mA > 2000) {
-					cout << "Torque was over 2000 or 0" << endl;
-					exit(0);
-				}
+			cout << "Getting client params" << endl;
 
-			} else {
-				cout << "Error: Missing Arguments" << endl;
-				usage();
+			if ( getClientParams(new_socket, torque_mA, sampling_ms) )
+			{
+				// invalid params
+				cout << "Invalid client params, trying again" << endl;
+				state = GetClientParams;
 			}
-
+			else
+				state = EndOrRestart;
 			break;
 		case RunMotors:
 			// Note that the first argument is always opening a udp socket
@@ -217,7 +210,7 @@ int main(int argc, char *argv[]) {
 					load_pos = load_axis.SendSdoUpload(0, 4, 0x6064, 0);
 					//cout << "---- A pos: " << a_pos << endl;
 
-					usleep(sleep_ms * 1000);
+					usleep(sampling_ms * 1000);
 					if (load_status & NC_AXIS_STAND_STILL_MASK) {
 						if (current_position >= positions.size()) {
 							break;
@@ -259,13 +252,59 @@ int main(int argc, char *argv[]) {
 
 }
 
-int startServer(int new_socket) {
+int getClientParams(int ff, int & torque_mA, int& sampling_ms)
+{
+	cout << "In client params..." << endl;
+	char *usage = "Usage: (torque_mA) (sampling_ms)\n";
+
+	if ( send(new_socket, usage, strlen(usage), 0)  == -1)
+	{
+		cout << new_socket << endl;
+		cout << "Sending failed..." << endl;
+	}
+
+	cout << "reading client params..." << endl;
+	read(new_socket, buffer, 1024);
+	cout << buffer << endl;
+	char * pch = strtok (buffer, " ,.-");
+	//todo handle params better...
+	int param_num = 0;
+	while (pch != NULL)
+	{
+		cout << "Read: " << pch << endl;
+		cout << "Buffer is now: " << buffer << endl;
+		int num = atoi(pch);
+		cout << "Num is: " << num << endl;
+		if (num != 0)
+		{
+			cout << "atoi worked" << endl;
+			if(param_num == 0)
+			{
+				torque_mA = num;
+			}
+			else if (param_num == 1)
+			{
+				sampling_ms = num;
+			}
+		}
+		else
+		{
+			cout << "atoi returned 0" << endl;
+			//return 1;
+		}
+		param_num++;
+		pch = strtok(NULL, " ,.-");
+	}
+	return 0;
+	cout << "End of client params " << endl;
+}
+
+int startServer() {
 	int server_fd, valread;
 	struct sockaddr_in address;
 	int opt = 1;
 	int addrlen = sizeof(address);
-	char buffer[1024] = { 0 };
-	char *hello = "Hello from server";
+	char *hello = "Hello from server\n";
 
 	// Creating socket file descriptor
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
@@ -296,9 +335,10 @@ int startServer(int new_socket) {
 		perror("accept");
 		exit(EXIT_FAILURE);
 	}
-	valread = read(new_socket, buffer, 1024);
+	//valread = read(new_socket, buffer, 1024);
 	printf("%s\n", buffer);
 	send(new_socket, hello, strlen(hello), 0);
+	cout << new_socket << endl;
 	printf("Hello message sent\n");
 }
 
