@@ -92,167 +92,171 @@ int main(int argc, char *argv[]) {
 
 	int state = MotorInit;
 
-	switch (state) {
-	case MotorInit:
-		cout << "In motor init" << endl;
-		MainInit();
-		ChangeOpMode();
+	while (1) {
+		switch (state) {
+		case MotorInit:
+			MainInit();
+			ChangeOpMode();
 
-		while (NC_AXIS_DONE_MASK & lift_status)
-			lift_status = load_axis.ReadStatus();
-		while (NC_AXIS_DONE_MASK & load_status)
-			load_status = lift_axis.ReadStatus();
-
-		try {
-			executeInput(lift_axis, "HM[1]=0");
-			executeInput(lift_axis, "HM[3]=0");
-			executeInput(lift_axis, "HM[1]=1");
-
-			string um_str = "UM=1";
-			executeInput(load_axis, um_str);
-			um_str = "UM=5";
-			executeInput(lift_axis, um_str);
-
-			cout << "Lift position: " << lift_axis.GetActualPosition() << endl;
-			lift_axis.SetPosition(0, OPM402_PROFILE_POSITION_MODE);
-			cout << "Position reset: " << lift_axis.GetActualPosition() << endl;
-
-			load_axis.PowerOn(MC_BUFFERED_MODE);
-			lift_axis.PowerOn(MC_BUFFERED_MODE);
-		}
-		catch(CMMCException& exception) {
-			lift_axis.SetPosition(0, OPM402_PROFILE_POSITION_MODE);
-			printf(
-					"Exception in function %s, axis ref=%s, err=%d, status=%d, %d, bye\n",
-					exception.what(), exception.axisName(), exception.error(),
-					exception.status(), exception.axisRef());
-		}
-		catch (...) {
-			std::cerr << "Unknown exception caught\n";
-			MainClose();
-			exit(0);
-		}
-
-		// A is load, B is lift
-
-
-		state = EndOrRestart;
-		break;
-	case ServerInit:
-		startServer(new_socket);
-		break;
-	case GetClientParams:
-		if (argc > 2) {
-			sleep_ms = atoi(argv[1]);
-			if (!sleep_ms) {
-				cout << "Sleep timer was invalid or 0" << endl;
-				exit(0);
-			}
-			torque_mA = atoi(argv[2]);
-			if (torque_mA == 0 || torque_mA > 2000) {
-				cout << "Torque was over 2000 or 0" << endl;
-				exit(0);
-			}
-
-		} else {
-			cout << "Error: Missing Arguments" << endl;
-			usage();
-		}
-
-		break;
-	case RunMotors:
-		// Note that the first argument is always opening a udp socket
-
-
-		//		positions.push_back(p4);
-		//		positions.push_back(p5);
-
-
-		cout << "Axes initialized..." << endl;
-
-		//string pos_str = "PA[1]=8000";
-		//executeInput(b_axis,pos_str);
-		//executeInput(b_axis,"BG");
-
-
-		//		if (lift_status & NC_AXIS_STAND_STILL_MASK)
-		//		{
-		//			BPosition p = positions[current_position];
-		//			current_position++;
-		//			lift_axis.MoveAbsolute(p.pos, p.vel, MC_BUFFERED_MODE);
-		//		}
-
-		//string xq_str = "XQ##P2P_Abs(2000,1000)";
-		//string pa_str = "PA[1]=4000";
-
-
-		stream << fixed << setprecision(2) << torque_A;
-		tc_str.append(stream.str());
-		cout << "Sending: " << tc_str << endl;
-		executeInput(load_axis, tc_str);
-		try {
-			while (!(lift_status & NC_AXIS_ERROR_STOP_MASK) && ++run_count
-					< run_limit) {
+			while (NC_AXIS_DONE_MASK & lift_status)
 				lift_status = load_axis.ReadStatus();
+			while (NC_AXIS_DONE_MASK & load_status)
 				load_status = lift_axis.ReadStatus();
 
-				//a1.SendSdoUploadAsync(0,4,0x6077,0);
-				load_read = load_axis.SendSdoUpload(0, 4, 0x6077, 0); //rc is current in mA
-				lift_read = lift_axis.SendSdoUpload(0, 4, 0x6077, 0);
-				load_read *= 10;
-				lift_read *= 10;
-				stringstream read_out;
-				read_out << "LO," << setprecision(2) << load_read << ", LI, "
-						<< lift_read << endl;
-				string str = read_out.str();
-				cout << "---- Load Current: " << load_read
-						<< "  ---- Lift Current: " << lift_read << endl;
-				send(new_socket, str.c_str(), str.length(), 0);
+			try {
+				executeInput(lift_axis, "HM[1]=0");
+				executeInput(lift_axis, "HM[3]=0");
+				executeInput(lift_axis, "HM[1]=1");
 
-				load_pos = load_axis.SendSdoUpload(0, 4, 0x6064, 0);
-				//cout << "---- A pos: " << a_pos << endl;
+				string um_str = "UM=1";
+				executeInput(load_axis, um_str);
+				um_str = "UM=5";
+				executeInput(lift_axis, um_str);
 
-				usleep(sleep_ms * 1000);
-				if (load_status & NC_AXIS_STAND_STILL_MASK) {
-					if (current_position >= positions.size()) {
-						break;
+				cout << "Lift position: " << lift_axis.GetActualPosition()
+						<< endl;
+				lift_axis.SetPosition(0, OPM402_PROFILE_POSITION_MODE);
+				cout << "Position reset: " << lift_axis.GetActualPosition()
+						<< endl;
+
+				load_axis.PowerOn(MC_BUFFERED_MODE);
+				lift_axis.PowerOn(MC_BUFFERED_MODE);
+			}
+			catch(CMMCException& exception) {
+				lift_axis.SetPosition(0, OPM402_PROFILE_POSITION_MODE);
+				printf(
+						"Exception in function %s, axis ref=%s, err=%d, status=%d, %d, bye\n",
+						exception.what(), exception.axisName(),
+						exception.error(), exception.status(),
+						exception.axisRef());
+			}
+			catch (...) {
+				std::cerr << "Unknown exception caught\n";
+				MainClose();
+				exit(0);
+			}
+
+			// A is load, B is lift
+
+
+			state = ServerInit;
+			break;
+		case ServerInit:
+			cout << "Waiting for client to connect..." << endl;
+			startServer(new_socket);
+			state = EndOrRestart;
+			break;
+		case GetClientParams:
+			if (argc > 2) {
+				sleep_ms = atoi(argv[1]);
+				if (!sleep_ms) {
+					cout << "Sleep timer was invalid or 0" << endl;
+					exit(0);
+				}
+				torque_mA = atoi(argv[2]);
+				if (torque_mA == 0 || torque_mA > 2000) {
+					cout << "Torque was over 2000 or 0" << endl;
+					exit(0);
+				}
+
+			} else {
+				cout << "Error: Missing Arguments" << endl;
+				usage();
+			}
+
+			break;
+		case RunMotors:
+			// Note that the first argument is always opening a udp socket
+
+
+			//		positions.push_back(p4);
+			//		positions.push_back(p5);
+
+
+			cout << "Axes initialized..." << endl;
+
+			//string pos_str = "PA[1]=8000";
+			//executeInput(b_axis,pos_str);
+			//executeInput(b_axis,"BG");
+
+
+			//		if (lift_status & NC_AXIS_STAND_STILL_MASK)
+			//		{
+			//			BPosition p = positions[current_position];
+			//			current_position++;
+			//			lift_axis.MoveAbsolute(p.pos, p.vel, MC_BUFFERED_MODE);
+			//		}
+
+			//string xq_str = "XQ##P2P_Abs(2000,1000)";
+			//string pa_str = "PA[1]=4000";
+
+
+			stream << fixed << setprecision(2) << torque_A;
+			tc_str.append(stream.str());
+			cout << "Sending: " << tc_str << endl;
+			executeInput(load_axis, tc_str);
+			try {
+				while (!(lift_status & NC_AXIS_ERROR_STOP_MASK) && ++run_count
+						< run_limit) {
+					lift_status = load_axis.ReadStatus();
+					load_status = lift_axis.ReadStatus();
+
+					//a1.SendSdoUploadAsync(0,4,0x6077,0);
+					load_read = load_axis.SendSdoUpload(0, 4, 0x6077, 0); //rc is current in mA
+					lift_read = lift_axis.SendSdoUpload(0, 4, 0x6077, 0);
+					load_read *= 10;
+					lift_read *= 10;
+					stringstream read_out;
+					read_out << "LO," << setprecision(2) << load_read
+							<< ", LI, " << lift_read << endl;
+					string str = read_out.str();
+					cout << "---- Load Current: " << load_read
+							<< "  ---- Lift Current: " << lift_read << endl;
+					send(new_socket, str.c_str(), str.length(), 0);
+
+					load_pos = load_axis.SendSdoUpload(0, 4, 0x6064, 0);
+					//cout << "---- A pos: " << a_pos << endl;
+
+					usleep(sleep_ms * 1000);
+					if (load_status & NC_AXIS_STAND_STILL_MASK) {
+						if (current_position >= positions.size()) {
+							break;
+						}
+						BPosition p = positions[current_position];
+						lift_axis.MoveAbsolute(p.pos, p.vel, MC_BUFFERED_MODE);
+						current_position++;
+						cout << endl << endl;
 					}
-					BPosition p = positions[current_position];
-					lift_axis.MoveAbsolute(p.pos, p.vel, MC_BUFFERED_MODE);
-					current_position++;
-					cout << endl << endl;
 				}
 			}
-		}
-		catch(CMMCException& exception) {
+			catch(CMMCException& exception) {
+				MainClose();
+				printf(
+						"Exception in function %s, axis ref=%s, err=%d, status=%d, %d, bye\n",
+						exception.what(), exception.axisName(),
+						exception.error(), exception.status(),
+						exception.axisRef());
+				exit(0);
+			}
+			catch (...) {
+				std::cerr << "Unknown exception caught\n";
+				MainClose();
+				exit(0);
+			}
+
+			cout << "Final position: " << lift_axis.GetActualPosition() << endl;
+			break;
+
+		case EndOrRestart:
+			cout << "End of program" << endl;
 			MainClose();
-			printf(
-					"Exception in function %s, axis ref=%s, err=%d, status=%d, %d, bye\n",
-					exception.what(), exception.axisName(), exception.error(),
-					exception.status(), exception.axisRef());
-			exit(0);
-		}
-		catch (...) {
-			std::cerr << "Unknown exception caught\n";
-			MainClose();
-			exit(0);
-		}
+			return 0;
+			break;
+		default:
+			break;
+		} // end of switch statement
+	} // end of while loop
 
-		cout << "Final position: " << lift_axis.GetActualPosition() << endl;
-		break;
-
-	case EndOrRestart:
-		cout << "Program ended." << endl;
-		return 0;
-		break;
-	default:
-		break;
-	}
-
-	// Terminate the application program back to the Operating System
-	MainClose();
-	cout << "End of program" << endl;
-	return 0;
 }
 
 int startServer(int new_socket) {
