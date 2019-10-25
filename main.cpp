@@ -88,8 +88,10 @@ int main(int argc, char *argv[]) {
 	char *usage = "Usage: (torque_mA) (sampling_ms)";
 
 	string tc_str = "TC=";
-	float torque_A = torque_mA / 1000.0;
+	float torque_A;
 	stringstream stream;
+
+	string restart_msg;
 
 	int state = MotorInit;
 
@@ -105,9 +107,9 @@ int main(int argc, char *argv[]) {
 				load_status = lift_axis.ReadStatus();
 
 			try {
-				executeInput(lift_axis, "HM[1]=0");
-				executeInput(lift_axis, "HM[3]=0");
-				executeInput(lift_axis, "HM[1]=1");
+//				executeInput(lift_axis, "HM[1]=0");
+//				executeInput(lift_axis, "HM[3]=0");
+//				executeInput(lift_axis, "HM[1]=1");
 
 				string um_str = "UM=1";
 				executeInput(load_axis, um_str);
@@ -116,7 +118,7 @@ int main(int argc, char *argv[]) {
 
 				cout << "Lift position: " << lift_axis.GetActualPosition()
 						<< endl;
-				lift_axis.SetPosition(0, OPM402_PROFILE_POSITION_MODE);
+				//lift_axis.SetPosition(0, OPM402_PROFILE_POSITION_MODE);
 				cout << "Position reset: " << lift_axis.GetActualPosition()
 						<< endl;
 
@@ -147,50 +149,24 @@ int main(int argc, char *argv[]) {
 			state = GetClientParams;
 			break;
 		case GetClientParams:
-			cout << "Getting client params" << endl;
-
-			if ( getClientParams(new_socket, torque_mA, sampling_ms) )
-			{
+			if (getClientParams(new_socket, torque_mA, sampling_ms)) {
 				// invalid params
 				cout << "Invalid client params, trying again" << endl;
 				state = GetClientParams;
+			} else {
+				cout << "Read torque: " << torque_mA << ", sampling_ms: "
+						<< sampling_ms;
+				state = RunMotors;
 			}
-			else
-				state = EndOrRestart;
 			break;
 		case RunMotors:
-			// Note that the first argument is always opening a udp socket
-
-
-			//		positions.push_back(p4);
-			//		positions.push_back(p5);
-
-
-			cout << "Axes initialized..." << endl;
-
-			//string pos_str = "PA[1]=8000";
-			//executeInput(b_axis,pos_str);
-			//executeInput(b_axis,"BG");
-
-
-			//		if (lift_status & NC_AXIS_STAND_STILL_MASK)
-			//		{
-			//			BPosition p = positions[current_position];
-			//			current_position++;
-			//			lift_axis.MoveAbsolute(p.pos, p.vel, MC_BUFFERED_MODE);
-			//		}
-
-			//string xq_str = "XQ##P2P_Abs(2000,1000)";
-			//string pa_str = "PA[1]=4000";
-
-
+			torque_A = torque_mA / 1000.0;
+			stream.str("");
 			stream << fixed << setprecision(2) << torque_A;
-			tc_str.append(stream.str());
-			cout << "Sending: " << tc_str << endl;
-			executeInput(load_axis, tc_str);
+			cout << "Sending: " << tc_str + stream.str() << endl;
+			executeInput(load_axis, tc_str + stream.str());
 			try {
-				while (!(lift_status & NC_AXIS_ERROR_STOP_MASK) && ++run_count
-						< run_limit) {
+				while (!(lift_status & NC_AXIS_ERROR_STOP_MASK)) {
 					lift_status = load_axis.ReadStatus();
 					load_status = lift_axis.ReadStatus();
 
@@ -203,8 +179,8 @@ int main(int argc, char *argv[]) {
 					read_out << "LO," << setprecision(2) << load_read
 							<< ", LI, " << lift_read << endl;
 					string str = read_out.str();
-					cout << "---- Load Current: " << load_read
-							<< "  ---- Lift Current: " << lift_read << endl;
+					//					cout << "---- Load Current: " << load_read
+					//							<< "  ---- Lift Current: " << lift_read << endl;
 					send(new_socket, str.c_str(), str.length(), 0);
 
 					load_pos = load_axis.SendSdoUpload(0, 4, 0x6064, 0);
@@ -218,7 +194,8 @@ int main(int argc, char *argv[]) {
 						BPosition p = positions[current_position];
 						lift_axis.MoveAbsolute(p.pos, p.vel, MC_BUFFERED_MODE);
 						current_position++;
-						cout << endl << endl;
+						//cout << endl << endl;
+						send(new_socket, "\n\n", 2, 0);
 					}
 				}
 			}
@@ -238,13 +215,23 @@ int main(int argc, char *argv[]) {
 			}
 
 			cout << "Final position: " << lift_axis.GetActualPosition() << endl;
+			state = EndOrRestart;
 			break;
 
 		case EndOrRestart:
-			cout << "End of program" << endl;
-			MainClose();
-			return 0;
-			break;
+			restart_msg = "Send 'r' to restart\n";
+			send(new_socket, restart_msg.c_str(), restart_msg.length(), 0);
+			read(new_socket, buffer, 1024);
+
+			if (strstr(buffer,"r") != NULL) {
+				current_position = 0;
+				state = GetClientParams;
+			} else {
+				cout << "End of program" << endl;
+				MainClose();
+				return 0;
+				break;
+			}
 		default:
 			break;
 		} // end of switch statement
@@ -252,51 +239,35 @@ int main(int argc, char *argv[]) {
 
 }
 
-int getClientParams(int ff, int & torque_mA, int& sampling_ms)
-{
-	cout << "In client params..." << endl;
+int getClientParams(int ff, int & torque_mA, int& sampling_ms) {
 	char *usage = "Usage: (torque_mA) (sampling_ms)\n";
 
-	if ( send(new_socket, usage, strlen(usage), 0)  == -1)
-	{
-		cout << new_socket << endl;
-		cout << "Sending failed..." << endl;
-	}
+	send(new_socket, usage, strlen(usage), 0);
 
-	cout << "reading client params..." << endl;
 	read(new_socket, buffer, 1024);
 	cout << buffer << endl;
-	char * pch = strtok (buffer, " ,.-");
+	char * pch = strtok(buffer, " ,.-");
 	//todo handle params better...
 	int param_num = 0;
-	while (pch != NULL)
-	{
-		cout << "Read: " << pch << endl;
-		cout << "Buffer is now: " << buffer << endl;
+	while (pch != NULL) {
 		int num = atoi(pch);
-		cout << "Num is: " << num << endl;
-		if (num != 0)
-		{
-			cout << "atoi worked" << endl;
-			if(param_num == 0)
-			{
+		if (num != 0) {
+			if (param_num == 0) {
+				if (num > 3000)
+					num = 3000;
 				torque_mA = num;
-			}
-			else if (param_num == 1)
-			{
+			} else if (param_num == 1) {
+				if (num > 1000)
+					num = 1000;
 				sampling_ms = num;
 			}
-		}
-		else
-		{
-			cout << "atoi returned 0" << endl;
-			//return 1;
+		} else {
+			return 1;
 		}
 		param_num++;
 		pch = strtok(NULL, " ,.-");
 	}
 	return 0;
-	cout << "End of client params " << endl;
 }
 
 int startServer() {
@@ -336,9 +307,7 @@ int startServer() {
 		exit(EXIT_FAILURE);
 	}
 	//valread = read(new_socket, buffer, 1024);
-	printf("%s\n", buffer);
 	send(new_socket, hello, strlen(hello), 0);
-	cout << new_socket << endl;
 	printf("Hello message sent\n");
 }
 
@@ -498,6 +467,25 @@ void MainInit() {
 	//
 	return;
 }
+void disableMotors()
+{
+	load_axis.Stop(MC_BUFFERED_MODE);
+	lift_axis.Stop(MC_BUFFERED_MODE);
+	load_axis.PowerOff(MC_BUFFERED_MODE);
+	lift_axis.PowerOff(MC_BUFFERED_MODE);
+
+	while (NC_AXIS_DISABLED_MASK & lift_status)
+		lift_status = load_axis.ReadStatus();
+	while (NC_AXIS_DISABLED_MASK & load_status)
+		load_status = lift_axis.ReadStatus();
+
+	load_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
+	loadOpMode = load_axis.GetOpMode();
+	while (loadOpMode != OPM402_PROFILE_POSITION_MODE) {
+		//a_axis.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
+		loadOpMode = load_axis.GetOpMode();
+	}
+}
 /*
  ============================================================================
  Function:				MainClose()
@@ -518,23 +506,8 @@ void MainClose() {
 	//
 	//	Here will come code for all closing processes
 	//
-	load_axis.Stop(MC_BUFFERED_MODE);
-	lift_axis.Stop(MC_BUFFERED_MODE);
-	load_axis.PowerOff(MC_BUFFERED_MODE);
-	lift_axis.PowerOff(MC_BUFFERED_MODE);
 
-	while (NC_AXIS_DISABLED_MASK & lift_status)
-		lift_status = load_axis.ReadStatus();
-	while (NC_AXIS_DISABLED_MASK & load_status)
-		load_status = lift_axis.ReadStatus();
-
-	load_axis.SetOpMode(OPM402_PROFILE_POSITION_MODE);
-	loadOpMode = load_axis.GetOpMode();
-	while (loadOpMode != OPM402_PROFILE_POSITION_MODE) {
-		//a_axis.SetOpMode(OPM402_PROFILE_VELOCITY_MODE);
-		loadOpMode = load_axis.GetOpMode();
-	}
-
+	disableMotors();
 	MMC_CloseConnection(gConnHndl);
 	return;
 }

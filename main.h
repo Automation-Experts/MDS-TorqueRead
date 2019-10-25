@@ -24,6 +24,7 @@ void executeInput(CMMCSingleAxis& axis, string input);
 void usage();
 int startServer();
 int getClientParams(int new_socket, int& torque_mA, int& sampling_ms );
+void disableMotors();
 /*
  ============================================================================
  General constants
