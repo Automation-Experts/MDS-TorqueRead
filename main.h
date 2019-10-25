@@ -19,10 +19,10 @@ int OnRunTimeError(const char *msg, unsigned int uiConnHndl,
 void TerminateApplication(int iSigNum);
 void Emergency_Received(unsigned short usAxisRef, short sEmcyCode);
 int CallbackFunc(unsigned char* recvBuffer, short recvBufferSize, void* lpsock);
-void ChangeToRelevantMode();
+void ChangeOpMode();
 void executeInput(CMMCSingleAxis& axis, string input);
 void usage();
-int startServer();
+int startServer(int new_socket);
 /*
  ============================================================================
  General constants
@@ -44,8 +44,8 @@ int giTerminate; // Flag to request program termination
 int lift_status;
 int load_status;
 int giGroupStatus;
-int giXOpMode;
-int giYOpMode;
+int loadOpMode;
+int liftOpMode;
 //
 /*
  ============================================================================
