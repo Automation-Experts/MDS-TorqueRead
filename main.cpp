@@ -25,9 +25,11 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <iostream>
 #include <sys/time.h>			// For time structure
 #include <signal.h>				// For Timer mechanism
 #include <string.h>
+#include <ctime>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -77,13 +79,15 @@ int main(int argc, char *argv[]) {
 	BPosition p1 = { 4000, 2000, MC_BUFFERED_MODE };
 	BPosition p2 = { 0, 4000, MC_BUFFERED_MODE };
 	BPosition p3 = { 8000, 8000, MC_BUFFERED_MODE };
-	BPosition p4 = { 400000, 100000, MC_BUFFERED_MODE };
+	BPosition p4 = { 200000, 100000, MC_BUFFERED_MODE };
 	BPosition p5 = { 0, 100000, MC_BUFFERED_MODE };
 	BPosition p6 = { 0, 8000, MC_BUFFERED_MODE };
 	positions.push_back(p1);
 	positions.push_back(p2);
 	positions.push_back(p3);
-	positions.push_back(p6);
+	positions.push_back(p4);
+	positions.push_back(p5);
+	//positions.push_back(p6);
 
 	char *usage = "Usage: (torque_mA) (sampling_ms)";
 
@@ -154,8 +158,17 @@ int main(int argc, char *argv[]) {
 				cout << "Invalid client params, trying again" << endl;
 				state = GetClientParams;
 			} else {
-				cout << "Read torque: " << torque_mA << ", sampling_ms: "
-						<< sampling_ms;
+				cout << "Read torque: " << torque_mA << ", sampling_ms: " << sampling_ms << endl;
+
+				//todo put the time in one spot
+				time_t t = time(0);
+				tm* now = localtime(&t);
+
+				//todo make this send nicer
+				stringstream date_stream;
+				date_stream << (now->tm_year + 1900) << '-'<< (now->tm_mon + 1) << '-'<<  now->tm_mday << endl;
+				cout << date_stream.str();
+				send(new_socket, date_stream.str().c_str(), date_stream.str().length(), 0);
 				state = RunMotors;
 			}
 			break;
@@ -175,9 +188,14 @@ int main(int argc, char *argv[]) {
 					lift_read = lift_axis.SendSdoUpload(0, 4, 0x6077, 0);
 					load_read *= 10;
 					lift_read *= 10;
+
+					time_t t = time(0);
+					tm* now = localtime(&t);
+					stringstream time_stream;
+					time_stream << (now->tm_hour + 1) << ':' << (now->tm_min + 1) << ':' << (now->tm_sec) ;
 					stringstream read_out;
-					read_out << "LO," << setprecision(2) << load_read
-							<< ", LI, " << lift_read << endl;
+					read_out << "TIME," << time_stream.str() << ", LOAD," << setprecision(2) << load_read
+							<< ", LIFT, " << lift_read << endl;
 					string str = read_out.str();
 					//					cout << "---- Load Current: " << load_read
 					//							<< "  ---- Lift Current: " << lift_read << endl;
@@ -196,6 +214,7 @@ int main(int argc, char *argv[]) {
 						current_position++;
 						//cout << endl << endl;
 						send(new_socket, "\n\n", 2, 0);
+						cout << "New motion: " << time_stream.str() << endl;
 					}
 				}
 			}
@@ -225,6 +244,7 @@ int main(int argc, char *argv[]) {
 
 			if (strstr(buffer,"r") != NULL) {
 				current_position = 0;
+				memset(buffer, 0, sizeof buffer);
 				state = GetClientParams;
 			} else {
 				cout << "End of program" << endl;

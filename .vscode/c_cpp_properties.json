@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:\\cygwin\\opt\\crosstool\\gcc-4.1.0-glibc-2.3.6\\powerpc-603e-linux-gnu\\include\\c++\\4.1.0\\backward",
+                "C:\\cygwin\\opt\\crosstool\\gcc-4.1.0-glibc-2.3.6\\powerpc-603e-linux-gnu\\include\\c++\\4.1.0",
+                "C:\\cygwin\\opt\\crosstool\\gcc-4.1.0-glibc-2.3.6\\powerpc-603e-linux-gnu\\powerpc-603e-linux-gnu\\include",
+                "C:\\cygwin\\opt\\crosstool\\gcc-4.1.0-glibc-2.3.6\\powerpc-603e-linux-gnu\\include\\c++\\4.1.0\\powerpc-603e-linux-gnu\\bits",
+                "C:/GMAS/includes",
+                "C:/GMAS/includes/CPP",
+                "C:/cygwin/tmp",
+                "C:/GMAS/includes/EMBL"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.16299.0",
+            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.16.27023/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "msvc-x64"
+        }
+    ],
+    "version": 4
+}

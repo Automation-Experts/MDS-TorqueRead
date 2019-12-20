@@ -1,0 +1,80 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558 
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "g++.exe build active file",
+            "command": "C:\\cygwin\\opt\\crosstool\\gcc-4.1.0-glibc-2.3.6\\powerpc-603e-linux-gnu\\bin\\powerpc-603e-linux-gnu-g++.exe",
+            "args": [
+                "-I",
+                "C:\\cygwin\\opt\\crosstool\\gcc-4.1.0-glibc-2.3.6\\powerpc-603e-linux-gnu\\include\\c++\\4.1.0\backward",
+                "-I",
+                "C:\\cygwin\\opt\\crosstool\\gcc-4.1.0-glibc-2.3.6\\powerpc-603e-linux-gnu\\include\\c++\\4.1.0",
+                "-I",
+                "C:\\cygwin\\opt\\crosstool\\gcc-4.1.0-glibc-2.3.6\\powerpc-603e-linux-gnu\\powerpc-603e-linux-gnu\\include",
+                "-I",
+                "C:\\cygwin\\opt\\crosstool\\gcc-4.1.0-glibc-2.3.6\\powerpc-603e-linux-gnu\\include\\c++\\4.1.0\\powerpc-603e-linux-gnu\\bits",
+                "-I",
+                "C:\\cygwin\\opt\\crosstool\\gcc-linaro-arm-linux-gnu\\arm-linux-gnueabihf\\include\\c++\\4.7.3\\arm-linux-gnueabihf\\bits",
+                "-I",
+                "C:/GMAS/includes",
+                "-I",
+                "C:/GMAS/includes/cpp",
+                "-I",
+                "../",
+                "-I",
+                "C:/cygwin/tmp",
+                "-I",
+                "C:/GMAS/includes/embl",
+                "-O0",
+                "-Wall",
+                "-c",
+                "-fmessage-length=0",
+                "-g",
+                "main.cpp",
+                "-o",
+                "MDS-TorqueRead.gexe"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "type": "shell",
+            "label": "scp file transfer",
+            "command": "scp",
+            "args": [
+                "GOLD_D/MDS-TorqueRead.gexe",
+                "maestro-ssh:~"
+            ],
+            // "problemMatcher": [
+            //     "$gcc"
+            // ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        },
+        {
+            "type": "shell",
+            "label": "ssh",
+            "command": "ssh",
+            "args": [
+                "maestro-ssh"
+            ],
+            // "problemMatcher": [
+            //     "$gcc"
+            // ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        }
+    ]
+}

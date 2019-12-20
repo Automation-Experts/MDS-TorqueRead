@@ -18,8 +18,11 @@
 					<folderInfo id="com.elmomc.project.CppDebugConfiguration.1250282500." name="/" resourcePath="">
 						<toolChain id="com.elmomc.project.CppElmoToolchainDebug.1876744305" name="Elmo C++ toolchain" superClass="com.elmomc.project.CppElmoToolchainDebug">
 							<targetPlatform binaryParser="org.eclipse.cdt.core.ELF;org.eclipse.cdt.core.GNU_ELF" id="com.elmomc.project.Cpp.Gold.Platform.92732209" isAbstract="false" superClass="com.elmomc.project.Cpp.Gold.Platform"/>
-							<builder buildPath="${workspace_loc:/MDS-TorqueRead/GOLD_D}" id="com.elmomc.project.CppBuilder.1285831421" managedBuildOn="true" name="GNU Make.GOLD_D" superClass="com.elmomc.project.CppBuilder"/>
-							<tool id="com.elmomc.project.CppCompilerExtended.1167204302" name="Gold C++ compiler" superClass="com.elmomc.project.CppCompilerExtended"/>
+							<builder buildPath="${workspace_loc:/MDS-TorqueRead/GOLD_D}" id="com.elmomc.project.CppBuilder.1285831421" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="GNU Make" superClass="com.elmomc.project.CppBuilder"/>
+							<tool command="powerpc-603e-linux-gnu-g++.exe" id="com.elmomc.project.CppCompilerExtended.1167204302" name="Gold C++ compiler" superClass="com.elmomc.project.CppCompilerExtended">
+								<option id="com.elmomc.project.CppMiscellaneousOptions.764102157" name="Other flags" superClass="com.elmomc.project.CppMiscellaneousOptions" value="-c -fmessage-length=0" valueType="string"/>
+								<inputType id="com.elmomc.project.CppSource.1307327220" name="C source files" superClass="com.elmomc.project.CppSource"/>
+							</tool>
 							<tool id="com.elmomc.project.CppLinker.1847507035" name="Gold C++ linker" superClass="com.elmomc.project.CppLinker"/>
 						</toolChain>
 					</folderInfo>
@@ -125,8 +128,10 @@
 					<folderInfo id="com.elmomc.project.CppPlatinumDebugConfiguration.1836857113." name="/" resourcePath="">
 						<toolChain id="com.elmomc.project.CppPlatinumElmoToolchainDebug.835449465" name="Elmo C++ toolchain" superClass="com.elmomc.project.CppPlatinumElmoToolchainDebug">
 							<targetPlatform binaryParser="org.eclipse.cdt.core.ELF;org.eclipse.cdt.core.GNU_ELF" id="com.elmomc.project.Cpp.Platinum.Platform.1868075181" isAbstract="false" superClass="com.elmomc.project.Cpp.Platinum.Platform"/>
-							<builder buildPath="${workspace_loc:/MDS-TorqueRead/PLATINUM_D}" id="com.elmomc.project.CppPlatinumBuilder.1647483017" managedBuildOn="true" name="GNU Make.PLATINUM_D" superClass="com.elmomc.project.CppPlatinumBuilder"/>
-							<tool id="com.elmomc.project.CppPlatinumCompilerExtended.1524594481" name="Platinum C++ compiler" superClass="com.elmomc.project.CppPlatinumCompilerExtended"/>
+							<builder buildPath="${workspace_loc:/MDS-TorqueRead/PLATINUM_D}" id="com.elmomc.project.CppPlatinumBuilder.1647483017" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="GNU Make" superClass="com.elmomc.project.CppPlatinumBuilder"/>
+							<tool id="com.elmomc.project.CppPlatinumCompilerExtended.1524594481" name="Platinum C++ compiler" superClass="com.elmomc.project.CppPlatinumCompilerExtended">
+								<inputType id="com.elmomc.project.CppPlatinumSource.2101311149" name="C source files" superClass="com.elmomc.project.CppPlatinumSource"/>
+							</tool>
 							<tool id="com.elmomc.project.CppPlatinumLinker.1536535023" name="Platinum C++ linker" superClass="com.elmomc.project.CppPlatinumLinker"/>
 						</toolChain>
 					</folderInfo>
@@ -215,6 +220,7 @@
 					</scannerInfoProvider>
 				</profile>
 			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 		<cconfiguration id="com.elmomc.project.CppReleaseConfiguration.745678387">
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.elmomc.project.CppReleaseConfiguration.745678387" moduleId="org.eclipse.cdt.core.settings" name="GOLD_R">
@@ -231,8 +237,10 @@
 					<folderInfo id="com.elmomc.project.CppReleaseConfiguration.745678387." name="/" resourcePath="">
 						<toolChain id="com.elmomc.project.CppElmoToolchainRelease.1896895353" name="Elmo C++ toolchain" superClass="com.elmomc.project.CppElmoToolchainRelease">
 							<targetPlatform binaryParser="org.eclipse.cdt.core.ELF;org.eclipse.cdt.core.GNU_ELF" id="com.elmomc.project.Cpp.Gold.Platform.1407926287" isAbstract="false" superClass="com.elmomc.project.Cpp.Gold.Platform"/>
-							<builder buildPath="${workspace_loc:/MDS-TorqueRead/GOLD_R}" id="com.elmomc.project.CppBuilder.647031739" managedBuildOn="true" name="GNU Make.GOLD_R" superClass="com.elmomc.project.CppBuilder"/>
-							<tool id="com.elmomc.project.CppCompiler.1487921828" name="Gold C++ compiler" superClass="com.elmomc.project.CppCompiler"/>
+							<builder buildPath="${workspace_loc:/MDS-TorqueRead/GOLD_R}" id="com.elmomc.project.CppBuilder.647031739" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="GNU Make" superClass="com.elmomc.project.CppBuilder"/>
+							<tool id="com.elmomc.project.CppCompiler.1487921828" name="Gold C++ compiler" superClass="com.elmomc.project.CppCompiler">
+								<inputType id="com.elmomc.project.CppSource.2087758647" name="C source files" superClass="com.elmomc.project.CppSource"/>
+							</tool>
 							<tool id="com.elmomc.project.CppLinker.1468342880" name="Gold C++ linker" superClass="com.elmomc.project.CppLinker"/>
 						</toolChain>
 					</folderInfo>
@@ -321,6 +329,7 @@
 					</scannerInfoProvider>
 				</profile>
 			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 		<cconfiguration id="com.elmomc.project.CppPlatinumReleaseConfiguration.1246440550">
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.elmomc.project.CppPlatinumReleaseConfiguration.1246440550" moduleId="org.eclipse.cdt.core.settings" name="PLATINUM_R">
@@ -337,8 +346,10 @@
 					<folderInfo id="com.elmomc.project.CppPlatinumReleaseConfiguration.1246440550." name="/" resourcePath="">
 						<toolChain id="com.elmomc.project.CppPlatinumToolchainRelease.99132834" name="Elmo C++ toolchain" superClass="com.elmomc.project.CppPlatinumToolchainRelease">
 							<targetPlatform binaryParser="org.eclipse.cdt.core.ELF;org.eclipse.cdt.core.GNU_ELF" id="com.elmomc.project.Cpp.Platinum.Platform.1071794871" isAbstract="false" superClass="com.elmomc.project.Cpp.Platinum.Platform"/>
-							<builder buildPath="${workspace_loc:/MDS-TorqueRead/PLATINUM_R}" id="com.elmomc.project.CppPlatinumBuilder.1381060938" managedBuildOn="true" name="GNU Make.PLATINUM_R" superClass="com.elmomc.project.CppPlatinumBuilder"/>
-							<tool id="com.elmomc.project.CppPlatinumCompiler.1608355952" name="Platinum C++ compiler" superClass="com.elmomc.project.CppPlatinumCompiler"/>
+							<builder buildPath="${workspace_loc:/MDS-TorqueRead/PLATINUM_R}" id="com.elmomc.project.CppPlatinumBuilder.1381060938" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="GNU Make" superClass="com.elmomc.project.CppPlatinumBuilder"/>
+							<tool id="com.elmomc.project.CppPlatinumCompiler.1608355952" name="Platinum C++ compiler" superClass="com.elmomc.project.CppPlatinumCompiler">
+								<inputType id="com.elmomc.project.CppPlatinumSource.669727011" name="C source files" superClass="com.elmomc.project.CppPlatinumSource"/>
+							</tool>
 							<tool id="com.elmomc.project.CppPlatinumLinker.1672646978" name="Platinum C++ linker" superClass="com.elmomc.project.CppPlatinumLinker"/>
 						</toolChain>
 					</folderInfo>
@@ -427,6 +438,7 @@
 					</scannerInfoProvider>
 				</profile>
 			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
